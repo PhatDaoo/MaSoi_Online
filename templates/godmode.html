@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>MA SÓI - GOD MODE</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+    <style>
+        /* CORE */
+        * { box-sizing: border-box; scrollbar-width: thin; scrollbar-color: #444 #111; }
+        body { 
+            background: #050505; color: #e0e0e0; font-family: 'VT323', monospace; /* PHÔNG MỚI */
+            font-size: 20px; /* Tăng size */
+            margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+        }
+        
+        /* HEADER */
+        .top-bar { 
+            background: #111; border-bottom: 2px solid #333; padding: 10px 20px; 
+            display: flex; justify-content: space-between; align-items: center; height: 60px;
+        }
+        .title { color: #e94560; font-size: 32px; font-weight: normal; letter-spacing: 2px; }
+        .room-info { font-size: 28px; color: #fcd34d; cursor: pointer; border: 2px dashed #555; padding: 0 15px; }
+        .room-info:hover { background: #222; border-color: #fff; }
+
+        /* LAYOUT */
+        .container { display: flex; flex: 1; overflow: hidden; }
+        .sidebar { width: 280px; background: #0a0a0a; border-right: 2px solid #333; display: flex; flex-direction: column; }
+        .sidebar-right { width: 320px; border-left: 2px solid #333; border-right: none; }
+        .main-area { flex: 1; display: flex; flex-direction: column; padding: 10px; background: #0e0e0e; overflow-y: auto; }
+        
+        .panel-header { 
+            background: #1a1a1a; padding: 8px 10px; font-size: 22px; color: #888; 
+            border-bottom: 2px solid #333; display: flex; justify-content: space-between;
+        }
+        
+        /* LISTS */
+        #player-list { flex: 1; overflow-y: auto; padding: 5px; }
+        .player-row { 
+            display: flex; justify-content: space-between; align-items: center; 
+            padding: 5px 10px; margin-bottom: 2px; background: #111; font-size: 22px;
+        }
+        .player-row:hover { background: #222; }
+        .p-alive { color: #4caf50; }
+        .p-dead { color: #666; text-decoration: line-through; }
+        .kick-x { color: #d00; cursor: pointer; font-weight: bold; padding: 0 5px; }
+
+        /* FACTIONS */
+        .factions-container { display: flex; gap: 10px; height: 100%; }
+        .faction-col { flex: 1; display: flex; flex-direction: column; gap: 8px; min-width: 200px; }
+        .faction-header { 
+            text-align: center; padding: 5px; font-size: 24px; border-bottom: 2px solid #333; margin-bottom: 5px;
+        }
+        .fac-villager { color: #81c784; border-color: #2e7d32; }
+        .fac-wolf { color: #ff8a80; border-color: #c62828; }
+        .fac-neutral { color: #ce93d8; border-color: #ad1457; }
+
+        /* ROLE CARD */
+        .role-card { 
+            display: flex; align-items: center; background: #161616; border: 2px solid #333; 
+            padding: 5px; transition: 0.1s;
+        }
+        .role-card:hover { border-color: #fff; background: #222; }
+        .role-icon { width: 40px; height: 40px; border: 2px solid #555; margin-right: 10px; image-rendering: pixelated; }
+        .role-info { flex: 1; font-size: 22px; }
+        .role-input { 
+            width: 40px; background: #000; border: 2px solid #444; color: #fff; 
+            text-align: center; font-family: 'VT323', monospace; font-size: 22px;
+        }
+
+        /* CONTROLS */
+        .control-bar { 
+            margin-top: 10px; padding: 10px 20px; background: #111; border-top: 2px solid #333; 
+            display: flex; gap: 20px; align-items: center; justify-content: space-between;
+        }
+        .counter-box { font-size: 24px; color: #aaa; }
+        .counter-num { color: #fff; font-weight: bold; }
+        
+        .btn-main { 
+            padding: 5px 20px; font-weight: normal; border: 2px solid #000; 
+            cursor: pointer; font-family: 'VT323', monospace; font-size: 24px; 
+            box-shadow: 3px 3px 0 #000;
+        }
+        .btn-start { background: #2e7d32; color: white; }
+        .btn-start:hover { background: #43a047; transform: translate(-2px, -2px); }
+        .btn-start:disabled { background: #333; color: #666; cursor: not-allowed; box-shadow: none; }
+        
+        .btn-skip { background: #ff8f00; color: #000; }
+        .btn-skip:hover { background: #ffb300; transform: translate(-2px, -2px); }
+
+        /* LOG */
+        #log-console { 
+            flex: 1; font-size: 18px; padding: 10px; overflow-y: auto; color: #ccc; 
+            line-height: 1.2;
+        }
+        
+        /* PREVIEW BOX */
+        #role-preview { 
+            height: 250px; border: 2px solid #0f0; background: #050505; 
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            padding: 10px; text-align: center; margin-bottom: 10px;
+        }
+        #preview-img { height: 120px; width: auto; display: none; border: 4px solid #fcd34d; margin-bottom: 10px; image-rendering: pixelated; }
+        #preview-name { font-size: 30px; color: #fcd34d; margin-bottom: 5px; }
+        #preview-desc { font-size: 20px; color: #ccc; }
+    </style>
+</head>
+<body>
+
+    <div class="top-bar">
+        <div class="title">GOD MODE <span style="font-size:18px; color:#666">v2.0</span></div>
+        <div class="room-info" onclick="copyRoomID()" title="Click để copy">
+            ID: <span id="room-id-display">...</span>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="sidebar">
+            <div class="panel-header">
+                <span>NGƯỜI CHƠI</span>
+                <span id="p-count">0</span>
+            </div>
+            <div id="player-list"></div>
+        </div>
+
+        <div class="main-area">
+            <div class="factions-container">
+                <div class="faction-col" id="col-villager">
+                    <div class="faction-header fac-villager">DÂN LÀNG</div>
+                </div>
+                <div class="faction-col" id="col-wolf">
+                    <div class="faction-header fac-wolf">PHE SÓI</div>
+                </div>
+                <div class="faction-col" id="col-neutral">
+                    <div class="faction-header fac-neutral">PHE KHÁC</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="sidebar sidebar-right">
+            <div id="role-preview">
+                <div style="color: #666; font-size: 20px;">[ DI CHUỘT VÀO ROLE ]</div>
+                <img id="preview-img" src="">
+                <div id="preview-name"></div>
+                <div id="preview-desc"></div>
+            </div>
+            <div class="panel-header">LOG HỆ THỐNG</div>
+            <div id="log-console"></div>
+        </div>
+    </div>
+
+    <div class="control-bar">
+        <div class="counter-box">
+            CHỌN: <span id="total-roles" class="counter-num">0</span> / <span id="total-players" class="counter-num">0</span>
+        </div>
+        <div style="display:flex; gap:10px">
+            <button id="btn-end-discuss" class="btn-main btn-skip" onclick="endDiscuss()">KẾT THÚC THẢO LUẬN</button>
+            <button id="btn-start" class="btn-main btn-start" onclick="startGame()">BẮT ĐẦU GAME</button>
+        </div>
+    </div>
+
+    <script>
+        // ... (Giữ nguyên phần script logic JS của file godmode.html trước đó) ...
+        // ... (Chỉ thay đổi CSS và HTML ở trên) ...
+        
+        // COPY LẠI ĐOẠN SCRIPT TỪ FILE GODMODE TRƯỚC VÀO ĐÂY ĐỂ CHẠY ĐƯỢC
+        const socket = io();
+        let myRoomId = null;
+        let ROLES_DATA = [];
+        let renderTimeout;
+
+        socket.emit('create_room'); 
+
+        socket.on('room_created', data => {
+            myRoomId = data.room_id;
+            ROLES_DATA = data.roles_info;
+            document.getElementById('room-id-display').innerText = myRoomId;
+            renderRoles();
+        });
+
+        const FACTION_MAP = {
+            "Sói": "wolf", "Sói con": "wolf", "Sói đầu đàn": "wolf", "Sói ăn chay": "wolf", "Nanh sói": "wolf",
+            "Ma cà rồng": "neutral", "Kẻ chán đời": "neutral", "Khủng bố": "neutral", "Du côn": "neutral", "Chủ giáo phái": "neutral", "Song sinh": "neutral", "Thần tình yêu": "neutral", "Sói đơn độc": "neutral",
+        };
+
+        function renderRoles() {
+            const colVil = document.getElementById('col-villager');
+            const colWolf = document.getElementById('col-wolf');
+            const colNeu = document.getElementById('col-neutral');
+
+            ROLES_DATA.forEach(role => {
+                let fac = FACTION_MAP[role.name] || "villager";
+                let container = (fac === "wolf") ? colWolf : (fac === "neutral") ? colNeu : colVil;
+                let def = (role.name === "Sói" || role.name === "Dân Làng") ? 1 : 0;
+                let id = 'role-' + role.name.replace(/ /g, '_');
+                
+                let html = `
+                    <div class="role-card" onmouseenter="showPreview('${role.name}')">
+                        <img src="/static/assets/${role.img}" class="role-icon">
+                        <div class="role-info">${role.name}</div>
+                        <input type="number" min="0" value="${def}" id="${id}" class="role-input" onchange="updateCounter()">
+                    </div>
+                `;
+                container.innerHTML += html;
+            });
+            updateCounter();
+        }
+
+        function showPreview(roleName) {
+            const role = ROLES_DATA.find(r => r.name === roleName);
+            if(role) {
+                document.getElementById('role-preview').querySelector('div').style.display = 'none';
+                const img = document.getElementById('preview-img');
+                img.src = '/static/assets/' + role.img;
+                img.style.display = 'block';
+                document.getElementById('preview-name').innerText = role.name;
+                document.getElementById('preview-desc').innerText = role.desc;
+            }
+        }
+
+        function updateCounter() {
+            let total = 0;
+            ROLES_DATA.forEach(r => {
+                let id = 'role-' + r.name.replace(/ /g, '_');
+                let el = document.getElementById(id);
+                if(el) total += parseInt(el.value) || 0;
+            });
+            let pCount = parseInt(document.getElementById('p-count').innerText) || 0;
+            const txt = document.getElementById('total-roles');
+            txt.innerText = total;
+            txt.style.color = (total === pCount && total > 0) ? '#4caf50' : '#ff5252';
+            document.getElementById('total-players').innerText = pCount;
+        }
+
+        socket.on('admin_update', data => {
+            clearTimeout(renderTimeout);
+            renderTimeout = setTimeout(() => {
+                renderPlayerList(data);
+            }, 50);
+        });
+
+        function renderPlayerList(data) {
+            const list = document.getElementById('player-list');
+            const fragment = document.createDocumentFragment();
+            document.getElementById('p-count').innerText = data.players.length;
+            
+            data.players.forEach(p => {
+                const div = document.createElement('div');
+                div.className = 'player-row';
+                let statusClass = p.alive ? 'p-alive' : 'p-dead';
+                let statusIcon = p.alive ? '[ON]' : '[OFF]';
+                div.innerHTML = `
+                    <div>
+                        <span style="font-size:16px">${statusIcon}</span>
+                        <span class="${statusClass}">${p.name}</span>
+                        <span style="font-size:16px; color:#888;">[${p.role}]</span>
+                    </div>
+                    <span class="kick-x" onclick="kick('${p.sid}')">X</span>
+                `;
+                fragment.appendChild(div);
+            });
+            list.innerHTML = '';
+            list.appendChild(fragment);
+
+            const btnStart = document.getElementById('btn-start');
+            if(data.started) {
+                btnStart.innerText = "GAME ĐANG CHẠY...";
+                btnStart.disabled = true;
+                btnStart.style.opacity = "0.5";
+            } else {
+                btnStart.innerText = "BẮT ĐẦU GAME";
+                btnStart.disabled = false;
+                btnStart.style.opacity = "1";
+            }
+            updateCounter();
+        }
+
+        socket.on('server_log', data => {
+            const box = document.getElementById('log-console');
+            let time = new Date().toLocaleTimeString('vi-VN', {hour12:false});
+            box.innerHTML += `<div><span style="color:#555">[${time}]</span> ${data.msg}</div>`;
+            box.scrollTop = box.scrollHeight;
+        });
+
+        function copyRoomID() {
+            navigator.clipboard.writeText(myRoomId);
+            alert("Đã copy ID: " + myRoomId);
+        }
+
+        function startGame() {
+            let config = {};
+            ROLES_DATA.forEach(r => {
+                let id = 'role-' + r.name.replace(/ /g, '_');
+                let el = document.getElementById(id);
+                if(el) {
+                    let val = parseInt(el.value);
+                    if(val > 0) config[r.name] = val;
+                }
+            });
+            
+            let total = document.getElementById('total-roles').innerText;
+            let players = document.getElementById('total-players').innerText;
+            
+            if(total != players) {
+                if(!confirm(`⚠️ Cảnh báo: Số role (${total}) không khớp số người (${players}).\nServer sẽ tự động điều chỉnh. Tiếp tục?`)) return;
+            }
+            socket.emit('admin_start_game', {room_id: myRoomId, roles: config});
+        }
+
+        function endDiscuss() { socket.emit('admin_end_discussion', {room_id: myRoomId}); }
+        function kick(sid) { if(confirm("Kick?")) socket.emit('admin_kick', {room_id: myRoomId, sid: sid}); }
+    </script>
+</body>
+</html>
