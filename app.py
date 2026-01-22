@@ -14,15 +14,14 @@ from common.const import *
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'masoi_secret_key'
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet')
-
-# Thêm biến toàn cục để lưu thời gian update cuối
-LAST_UPDATE_TIME = {}
+# Thêm ping_timeout để tránh disconnect oan uổng
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='eventlet', ping_timeout=60)
 
 # --- QUẢN LÝ PHÒNG ---
 ROOMS = {} # room_id -> { "engine": ..., "started": ... }
+LAST_UPDATE_TIME = {} 
 
-# DANH SÁCH ROLE ĐẦY ĐỦ CHO GOD MODE (Khớp với const.py)
+# DANH SÁCH ROLE ĐẦY ĐỦ
 ROLES_INFO = [
     {"name": "Dân Làng", "img": "villager.PNG", "desc": "Ngủ suốt đêm."},
     {"name": "Sói", "img": "wolf.PNG", "desc": "Cắn người mỗi đêm."},
@@ -100,31 +99,20 @@ def create_logger(room_id):
     return log_func
 
 def update_admin_dashboard(room_id):
-    """Gửi cập nhật nhưng có giới hạn tốc độ (Throttling)"""
     if room_id not in ROOMS: return
-    
     current_time = time.time()
     last_time = LAST_UPDATE_TIME.get(room_id, 0)
-    
-    # Nếu vừa gửi chưa được 0.5s thì bỏ qua (trừ khi game kết thúc hoặc bắt đầu thì ưu tiên)
-    # Bạn có thể tinh chỉnh số 0.5 này
-    if current_time - last_time < 0.5: 
-        return 
-
+    if current_time - last_time < 0.5: return 
     LAST_UPDATE_TIME[room_id] = current_time
-    
+
     engine = ROOMS[room_id]['engine']
-    
-    # ... (Giữ nguyên phần tạo players_data) ...
     players_data = []
     for p in engine.players:
         role_name = p.role.name if p.role else "..."
         players_data.append({"sid": p.sid, "name": p.name, "alive": p.is_alive, "role": role_name})
     
     socketio.emit('admin_update', {
-        'players': players_data, 
-        'started': ROOMS[room_id]['started'],
-        'room_id': room_id
+        'players': players_data, 'started': ROOMS[room_id]['started'], 'room_id': room_id
     }, room=room_id)
 
 @app.route('/')
@@ -133,18 +121,16 @@ def index(): return render_template('index.html')
 @app.route('/godmode')
 def godmode(): return render_template('godmode.html')
 
-# --- SOCKET EVENTS (ĐÃ SỬA LỖI) ---
+# --- SOCKET EVENTS ---
 
 @socketio.on('create_room')
-def on_create_room(): # <--- ĐÃ SỬA: Xóa tham số data
+def on_create_room(): 
     room_id = generate_room_id()
     engine = GameEngine()
     engine.log_callback = create_logger(room_id)
     
     ROOMS[room_id] = { "engine": engine, "started": False, "host_sid": request.sid }
     join_room(room_id)
-    
-    # Gửi lại ID phòng và danh sách Role cho Admin
     emit('room_created', {'room_id': room_id, 'roles_info': ROLES_INFO})
     print(f"✅ Created Room: {room_id}")
 
@@ -191,10 +177,8 @@ def on_admin_start(data):
 @socketio.on('admin_end_discussion')
 def on_admin_end_discuss(data):
     room_id = data.get('room_id')
-    # Gọi hàm mở khóa
-    if room_id in ROOMS: 
-        ROOMS[room_id]['engine'].end_discussion()
-        
+    if room_id in ROOMS: ROOMS[room_id]['engine'].end_discussion()
+
 @socketio.on('admin_kick')
 def on_admin_kick(data):
     room_id = data.get('room_id'); sid = data.get('sid')
