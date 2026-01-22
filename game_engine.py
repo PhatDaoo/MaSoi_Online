@@ -231,7 +231,7 @@ class GameEngine:
             if target:
                 # Cập nhật trạng thái bảo vệ
                 target.status["protected_by_bodyguard"] = True
-                
+                target.status["protected"] = True
                 # Lưu lại người vừa bảo vệ (Dù luật mới cho phép lặp lại, ta cứ lưu để log hoặc mở rộng sau này)
                 player.inventory["guard_last_target"] = target.sid
                 
