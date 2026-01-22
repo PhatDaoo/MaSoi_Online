@@ -221,17 +221,20 @@ class GameEngine:
             player.send({"type": CMD_SYSTEM, "payload": f"✅ Đã ghép {p1.name} ❤️ {p2.name}"})
 
     def action_bodyguard(self, player):
-        last_protected = player.inventory.get("guard_last_target")
-        # Không được bảo vệ người cũ
-        targets = [(p.sid, p.name) for p in self.players if p.is_alive and p.sid != last_protected]
+        targets = [(p.sid, p.name) for p in self.players if p.is_alive]
+        
         targets.append(("SKIP", "Không bảo vệ"))
         
         choice = player.wait_for_input("Bảo vệ ai đêm nay?", targets)
-        if choice != "SKIP":
+        if choice and choice != "SKIP":
             target = self.get_player_by_id(choice)
             if target:
-                target.status["protected"] = True
+                # Cập nhật trạng thái bảo vệ
+                target.status["protected_by_bodyguard"] = True
+                
+                # Lưu lại người vừa bảo vệ (Dù luật mới cho phép lặp lại, ta cứ lưu để log hoặc mở rộng sau này)
                 player.inventory["guard_last_target"] = target.sid
+                
                 player.send({"type": CMD_SYSTEM, "payload": f"🛡️ Đang bảo vệ {target.name}"})
         else:
             player.inventory["guard_last_target"] = None
