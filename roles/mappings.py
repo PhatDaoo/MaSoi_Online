@@ -4,409 +4,329 @@ from roles.base import Role
 from common.const import *
 
 # ==========================================
-# NHÓM DÂN LÀNG (PASSIVE / BASIC)
+# 1. PHE DÂN LÀNG (VILLAGER FACTION)
 # ==========================================
 
 class Villager(Role):
-    def __init__(self):
-        super().__init__(ROLE_VILLAGER, "Villager", "Ngủ.")
+    def __init__(self): super().__init__(ROLE_VILLAGER, "Villager", "Ngủ.")
 
-class Lycan(Role): # Con lai
-    def __init__(self):
-        super().__init__(ROLE_LYCAN, "Villager", "Là Dân nhưng Tiên tri soi ra Sói.")
-
-class Mayor(Role): # Thị trưởng
-    def __init__(self):
-        super().__init__(ROLE_MAYOR, "Villager", "Phiếu vote tính bằng 2.")
-
-class Cursed(Role): # Kẻ bị nguyền
-    def __init__(self):
-        super().__init__(ROLE_CURSED, "Villager", "Bị Sói cắn sẽ hóa Sói.")
-
-class Prince(Role): # Hoàng tử
-    def __init__(self):
-        super().__init__(ROLE_PRINCE, "Villager", "Bị treo cổ sẽ lật bài và không chết.")
-
-class SickMan(Role): # Người bệnh
-    def __init__(self):
-        super().__init__(ROLE_SICK_MAN, "Villager", "Sói cắn sẽ bị ngộ độc đêm sau.")
-
-class ToughGuy(Role): # Thanh niên cứng
-    def __init__(self):
-        super().__init__(ROLE_TOUGH_GUY, "Villager", "Bị cắn chết chậm 1 ngày.")
-
-class Ghost(Role): # Hồn ma
-    def __init__(self):
-        super().__init__(ROLE_GHOST, "Villager", "Chết đêm đầu. Mỗi đêm gửi 1 từ gợi ý.")
-        self.wake_order = 0.2
+class Seer(Role):
+    def __init__(self): super().__init__(ROLE_SEER, "Villager", "Soi phe (Sói/Người).")
     def on_night(self, game, my_player):
-        return "Hãy nhập 1 từ gợi ý vào khung chat!"
-
-# ==========================================
-# NHÓM SÓI (WEREWOLF TEAM)
-# ==========================================
-
-class Werewolf(Role):
-    def __init__(self):
-        super().__init__(ROLE_WEREWOLF, "Werewolf", "Thống nhất cắn 1 người.")
-
-class VegetarianWolf(Role): # Sói ăn chay
-    def __init__(self):
-        super().__init__(ROLE_VEGETARIAN_WOLF, "Werewolf", "Phe Sói nhưng không tham gia cắn.")
-    def on_night(self, game, my_player):
-        return "Bạn ăn chay, ngủ ngon."
-
-class AlphaWolf(Role): # Sói đầu đàn
-    def __init__(self):
-        super().__init__(ROLE_ALPHA_WOLF, "Werewolf", "Vote x2. Có thể chọn biến nạn nhân thành Sói.")
-
-class WolfCub(Role): # Sói con
-    def __init__(self):
-        super().__init__(ROLE_WOLF_CUB, "Werewolf", "Nếu chết, Sói cắn 2 người đêm sau.")
-
-class LoneWolf(Role): # Sói đơn độc
-    def __init__(self):
-        super().__init__(ROLE_LONE_WOLF, "LoneWolf", "Thắng nếu là người cuối cùng.")
-
-class DireWolf(Role): # Nanh sói
-    def __init__(self):
-        super().__init__(ROLE_DIRE_WOLF, "Werewolf", "Kết đôi 1 người. Chết kéo theo.")
-        self.bond_target = None
-
-    def on_night(self, game, my_player):
-        if game.day_count == 1:
-            targets = [(str(id(p)), p.name) for p in game.players if p != my_player and p.is_alive]
-            tid = my_player.wait_for_input("🔗 Chọn người kết nghĩa:", targets)
-            target = game.get_player_by_id(tid)
-            if target:
-                self.bond_target = target
-                return f"Đã kết nghĩa với {target.name}"
-        return None
-    
-    def on_death(self, game, my_player):
-        if self.bond_target and self.bond_target.is_alive:
-            game.broadcast("SYS", f"🔗 Nanh Sói chết, kéo theo {self.bond_target.name}!")
-            self.bond_target.is_alive = False
-            self.bond_target.role.on_death(game, self.bond_target)
-
-class Medium(Role): # Bà đồng (Phe Sói)
-    def __init__(self):
-        super().__init__(ROLE_MEDIUM, "Werewolf", "Tìm Tiên tri.")
-        self.wake_order = 1.8
-
-    def on_night(self, game, my_player):
-        targets = [(str(id(p)), p.name) for p in game.players if p != my_player and p.is_alive]
-        tid = my_player.wait_for_input("🔮 Tìm Tiên tri:", targets)
-        t = game.get_player_by_id(tid)
-        if t and t.role.name == ROLE_SEER:
-            return f"BINGO! {t.name} là Tiên Tri!"
-        return "Không phải Tiên Tri."
-
-# ==========================================
-# NHÓM BẢO VỆ & GIẾT
-# ==========================================
-
-class Protector(Role): # Bảo vệ
-    def __init__(self):
-        super().__init__(ROLE_PROTECTOR, "Villager", "Bảo vệ 1 người (chỉ chặn Sói).")
-
-    def on_night(self, game, my_player):
-        targets = [(str(id(p)), p.name) for p in game.players if p.is_alive]
-        tid = my_player.wait_for_input("🛡️ Bảo vệ ai?", targets)
+        targets = [(p.sid, p.name) for p in game.players if p != my_player and p.is_alive]
+        tid = my_player.wait_for_input("Soi ai?", targets)
         t = game.get_player_by_id(tid)
         if t:
-            t.status["protected_by_bodyguard"] = True
-            return f"Đã bảo vệ {t.name}"
+            # Người sói (Wolfman) soi ra Dân
+            if t.role.name == ROLE_WOLFMAN: 
+                return f"👁️ {t.name} là PHE NGƯỜI."
+            # Con lai (Lycan) soi ra Sói
+            if t.role.name == ROLE_LYCAN: 
+                return f"👁️ {t.name} là PHE SÓI."
+            
+            is_wolf = t.role.team == "Werewolf"
+            return f"👁️ {t.name} là {'PHE SÓI' if is_wolf else 'PHE NGƯỜI'}."
         return None
 
-class Priest(Role): # Mục sư
-    def __init__(self):
-        super().__init__(ROLE_PRIEST, "Villager", "Bất tử tuyệt đối (1 lần).")
-        self.used = False
-        self.wake_order = 0.5
+class Bodyguard(Role):
+    def __init__(self): super().__init__(ROLE_BODYGUARD, "Villager", "Bảo vệ 1 người.")
 
-    def on_night(self, game, my_player):
-        if self.used: return "Đã dùng hết phép."
-        targets = [(str(id(p)), p.name) for p in game.players if p.is_alive]
-        targets.append(("SKIP", "Để dành"))
-        c = my_player.wait_for_input("✝️ Ban phước ai?", targets)
-        if c != "SKIP":
-            t = game.get_player_by_id(c)
-            if t:
-                t.status["blessed"] = True
-                self.used = True
-                return f"Đã ban phước {t.name}"
-        return None
+class Witch(Role):
+    def __init__(self): super().__init__(ROLE_WITCH, "Villager", "Bình Cứu/Độc.")
 
-class Hunter(Role): # Thợ săn
-    def __init__(self):
-        super().__init__(ROLE_HUNTER, "Villager", "Chết kéo theo 1 người.")
+class Hunter(Role):
+    def __init__(self): super().__init__(ROLE_HUNTER, "Villager", "Chết kéo theo.")
+
+class Cupid(Role):
+    def __init__(self): super().__init__(ROLE_CUPID, "Villager", "Ghép đôi.")
+
+class Lycan(Role):
+    def __init__(self): super().__init__(ROLE_LYCAN, "Villager", "Dân bị soi ra Sói.")
+
+class OldMan(Role): # Già làng
+    def __init__(self): 
+        super().__init__(ROLE_OLD_MAN, "Villager", "Chết vào đêm X (X = Số lượng Sói ban đầu).")
     
-    def on_death(self, game, my_player):
-        game.broadcast("SYS", f"🔫 {my_player.name} (THỢ SĂN) đang rút súng...")
-        targets = [(str(id(p)), p.name) for p in game.players if p.is_alive and p != my_player]
-        if targets:
-            tid = my_player.wait_for_input("🔫 Bắn ai?", targets)
+    def on_night(self, game, my_player):
+        # 1. Tính số lượng Sói ban đầu (Tính cả người đã chết để lấy số lượng gốc)
+        # Bao gồm tất cả các role có team là "Werewolf" (Sói, Sói con, Alpha, Bà đồng,...)
+        initial_wolf_count = sum(1 for p in game.players if p.role.team == "Werewolf")
+        
+        # 2. Kiểm tra nếu đêm nay trùng với số lượng Sói
+        if game.day_count == initial_wolf_count:
+            my_player.is_alive = False
+            return f"👴 Đêm thứ {game.day_count} (trùng số lượng Sói), tuổi già sức yếu nên bạn đã qua đời."
+        
+        return None
+
+class ApprenticeSeer(Role):
+    def __init__(self): super().__init__(ROLE_APPRENTICE_SEER, "Villager", "Kế thừa Tiên tri.")
+    def on_night(self, game, my_player):
+        seer_alive = any(p.is_alive and p.role.name == ROLE_SEER for p in game.players)
+        if not seer_alive:
+            targets = [(p.sid, p.name) for p in game.players if p != my_player and p.is_alive]
+            tid = my_player.wait_for_input("👁️ [THỨC TỈNH] Soi ai?", targets)
             t = game.get_player_by_id(tid)
             if t:
-                game.broadcast("SYS", f"💥 ĐOÀNG! {t.name} bị bắn chết!")
-                t.is_alive = False
-                t.role.on_death(game, t)
+                is_wolf = t.role.team == "Werewolf"
+                return f"👁️ {t.name} là {'PHE SÓI' if is_wolf else 'PHE NGƯỜI'}."
+        return "Tiên tri vẫn còn sống."
 
-class Huntress(Role): # Nữ thợ săn
-    def __init__(self):
-        super().__init__(ROLE_HUNTRESS, "Villager", "Bắn 1 người ban đêm (1 lần).")
+class ToughGuy(Role):
+    def __init__(self): super().__init__(ROLE_TOUGH_GUY, "Villager", "Bị cắn chết chậm.")
+
+class SickMan(Role):
+    def __init__(self): super().__init__(ROLE_SICK_MAN, "Villager", "Sói cắn bị bệnh.")
+    def on_death(self, game, my_player):
+        if my_player.status.get("targeted"):
+            game.status["wolves_skip_hunt"] = True
+            game.broadcast(CMD_SYSTEM, "🤢 Sói cắn phải Người bệnh! Đêm mai Sói bị ốm.")
+
+class Prince(Role):
+    def __init__(self): super().__init__(ROLE_PRINCE, "Villager", "Không bị treo cổ.")
+
+class Insomniac(Role):
+    def __init__(self): super().__init__(ROLE_INSOMNIAC, "Villager", "Biết hàng xóm dậy.")
+    def on_night(self, game, my_player):
+        neighbors = game.get_neighbors(my_player)
+        # Check xem hàng xóm có role nào dậy đêm không
+        woke = [n.name for n in neighbors if hasattr(n.role, 'on_night') and n.role.on_night.__code__ != Role.on_night.__code__]
+        if woke: return f"👀 Hàng xóm {', '.join(woke)} đã thức giấc!"
+        return "👀 Hàng xóm ngủ ngon."
+
+class Beholder(Role):
+    def __init__(self): super().__init__(ROLE_BEHOLDER, "Villager", "Biết Tiên tri.")
+    def on_night(self, game, my_player):
+        seers = [p.name for p in game.players if p.role.name == ROLE_SEER]
+        return f"Tiên tri là: {', '.join(seers)}" if seers else "Không có Tiên tri."
+
+class Huntress(Role):
+    def __init__(self): 
+        super().__init__(ROLE_HUNTRESS, "Villager", "Bắn đêm (1 lần).")
         self.used = False
-
     def on_night(self, game, my_player):
         if self.used: return None
-        targets = [(str(id(p)), p.name) for p in game.players if p != my_player and p.is_alive]
-        targets.append(("SKIP", "Không bắn"))
-        c = my_player.wait_for_input("🏹 Bắn ai?", targets)
-        if c != "SKIP":
-            t = game.get_player_by_id(c)
+        targets = [(p.sid, p.name) for p in game.players if p.is_alive and p != my_player] + [("SKIP", "Không")]
+        tid = my_player.wait_for_input("🏹 Bắn ai?", targets)
+        if tid != "SKIP":
+            t = game.get_player_by_id(tid)
             if t:
                 t.status["killed_by_huntress"] = True
                 self.used = True
                 return f"Đã bắn {t.name}"
         return None
 
-class Gambler(Role): # Con bạc
-    def __init__(self):
-        super().__init__(ROLE_GAMBLER, "Villager", "Đoán Sói. Đúng Sói chết, sai mình chết.")
-        self.can_act = False
-
+class Mentalist(Role):
+    def __init__(self): super().__init__(ROLE_MENTALIST, "Villager", "Soi cùng phe.")
     def on_night(self, game, my_player):
-        if game.day_count == 1: return "Đêm 1 nghỉ ngơi."
-        targets = [(str(id(p)), p.name) for p in game.players if p != my_player and p.is_alive]
-        tid = my_player.wait_for_input("🎲 Chọn ai là Sói?", targets)
+        targets = [(p.sid, p.name) for p in game.players if p != my_player and p.is_alive]
+        if len(targets) < 2: return "Thiếu người."
+        id1 = my_player.wait_for_input("Người 1:", targets)
+        t2 = [x for x in targets if x[0] != id1]
+        id2 = my_player.wait_for_input("Người 2:", t2)
+        p1 = game.get_player_by_id(id1); p2 = game.get_player_by_id(id2)
+        if p1 and p2:
+            same = (p1.role.team == p2.role.team)
+            return f"{p1.name} và {p2.name} {'CÙNG' if same else 'KHÁC'} phe."
+        return None
+
+class Revealer(Role):
+    def __init__(self): super().__init__(ROLE_REVEALER, "Villager", "Soi Sói chết, Dân mình chết.")
+    def on_night(self, game, my_player):
+        targets = [(p.sid, p.name) for p in game.players if p != my_player and p.is_alive]
+        tid = my_player.wait_for_input("🔦 Soi ai?", targets)
         t = game.get_player_by_id(tid)
         if t:
             if t.role.team == "Werewolf":
-                t.status["killed_by_gambler"] = True
-                return f"🎲 CHÍNH XÁC! {t.name} sẽ chết."
+                t.status["revealed_kill"] = True # Cần engine xử lý chết
+                return f"Đã khám phá ra Sói {t.name}!"
             else:
-                my_player.status["killed_by_gambler"] = True # Tự sát
-                return "🎲 SAI RỒI! Bạn sẽ chết."
+                my_player.status["revealed_kill"] = True # Tự sát
+                return "Đây là Dân! Bạn sẽ chết."
         return None
 
-class Terrorist(Role): # Khủng bố
-    def __init__(self):
-        super().__init__(ROLE_TERRORIST, "Solo", "Nổ chết người vote hoặc Sói cắn.")
-    # Logic nổ xử lý trong on_death ở Engine
-
-# ==========================================
-# NHÓM TIÊN TRI & SOI
-# ==========================================
-
-class Seer(Role): # Tiên tri
-    def __init__(self):
-        super().__init__(ROLE_SEER, "Villager", "Soi phe.")
-        self.wake_order = 2
-
+class Priest(Role):
+    def __init__(self): 
+        super().__init__(ROLE_PRIEST, "Villager", "Ban bất tử (1 lần, trừ bản thân).")
+        self.used = False
+        
     def on_night(self, game, my_player):
-        targets = [(str(id(p)), p.name) for p in game.players if p != my_player and p.is_alive]
-        if not targets: return None
-        tid = my_player.wait_for_input("👁️ Soi ai?", targets)
+        if self.used: return None
+        
+        # SỬA: Loại bỏ my_player khỏi danh sách targets (Không tự ban phước)
+        targets = [(p.sid, p.name) for p in game.players if p.is_alive and p != my_player]
+        
+        tid = my_player.wait_for_input("✝️ Ban phước ai?", targets)
         t = game.get_player_by_id(tid)
         if t:
-            is_bad = (t.role.team == "Werewolf") or (t.role.name == ROLE_LYCAN)
-            return f"{t.name} là {'PHE XẤU' if is_bad else 'PHE TỐT'}"
+            t.status["blessed"] = True # Gán trạng thái Bất Tử
+            self.used = True
+            return f"Đã ban phước cho {t.name}. Người này sẽ bất tử vào ban đêm!"
         return None
 
-class AuraSeer(Role): # Tiên tri hào quang
-    def __init__(self):
-        super().__init__(ROLE_AURA_SEER, "Villager", "Soi chức năng.")
+class Doppelganger(Role):
+    def __init__(self): 
+        super().__init__(ROLE_DOPPELGANGER, "Villager", "Sao chép role.")
+        self.target_sid = None
+    def on_night(self, game, my_player):
+        if game.day_count == 1:
+            targets = [(p.sid, p.name) for p in game.players if p != my_player and p.is_alive]
+            self.target_sid = my_player.wait_for_input("👤 Sao chép ai?", targets)
+            return "Đã chọn mục tiêu."
+        return None
+
+class Drunk(Role):
+    def __init__(self): super().__init__(ROLE_DRUNK, "Villager", "Đêm 3 chọn phe.")
+    def on_night(self, game, my_player):
+        if game.day_count == 3:
+            c = my_player.wait_for_input("🍺 Chọn phe:", [("WOLF", "Sói"), ("VILLAGER", "Dân")])
+            if c == "WOLF": my_player.role.team = "Werewolf"
+            return "Đã chọn phe."
+        return None
+
+class Detective(Role):
+    def __init__(self): 
+        super().__init__(ROLE_DETECTIVE, "Villager", "Soi hàng xóm của mục tiêu.")
 
     def on_night(self, game, my_player):
-        targets = [(str(id(p)), p.name) for p in game.players if p != my_player and p.is_alive]
-        tid = my_player.wait_for_input("✨ Soi hào quang ai?", targets)
+        targets = [(p.sid, p.name) for p in game.players if p != my_player and p.is_alive]
+        tid = my_player.wait_for_input("🕵️ Soi ai?", targets)
         t = game.get_player_by_id(tid)
         if t:
-            no_abil = [ROLE_VILLAGER, ROLE_WEREWOLF, ROLE_VEGETARIAN_WOLF, ROLE_LYCAN]
-            if t.role.name in no_abil: return f"{t.name}: Không chức năng."
-            return f"{t.name}: CÓ CHỨC NĂNG."
+            # Lấy danh sách hàng xóm CỦA MỤC TIÊU (t), không phải của Thám tử
+            target_neighbors = game.get_neighbors(t)
+            
+            # Kiểm tra xem trong số hàng xóm đó, có ai thuộc team "Werewolf" không
+            has_wolf_neighbor = any(n.role.team == "Werewolf" for n in target_neighbors)
+            
+            if has_wolf_neighbor:
+                return f"⚠️ Có mùi nguy hiểm! Một trong những người ngồi cạnh {t.name} là SÓI."
+            else:
+                return f"✅ An toàn. Hai người ngồi cạnh {t.name} đều KHÔNG PHẢI Sói."
+        
         return None
 
-class MysticSeer(Role): # Tiên tri bí ẩn
-    def __init__(self):
-        super().__init__(ROLE_MYSTIC_SEER, "Villager", "Soi role chính xác.")
-
+class AuraSeer(Role):
+    def __init__(self): super().__init__(ROLE_AURA_SEER, "Villager", "Soi chức năng.")
     def on_night(self, game, my_player):
-        targets = [(str(id(p)), p.name) for p in game.players if p != my_player and p.is_alive]
+        targets = [(p.sid, p.name) for p in game.players if p != my_player and p.is_alive]
+        tid = my_player.wait_for_input("✨ Soi ai?", targets)
+        t = game.get_player_by_id(tid)
+        if t:
+            no_abil = [ROLE_VILLAGER, ROLE_WEREWOLF]
+            return f"{t.name}: {'CÓ' if t.role.name not in no_abil else 'KHÔNG'} chức năng."
+        return None
+
+class Mayor(Role):
+    def __init__(self): super().__init__(ROLE_MAYOR, "Villager", "Vote x2.")
+
+class Martyr(Role):
+    def __init__(self): super().__init__(ROLE_MARTYR, "Villager", "Chết thay.")
+
+class Twins(Role):
+    def __init__(self): super().__init__(ROLE_TWINS, "Villager", "Biết mặt nhau.")
+    def on_night(self, game, my_player):
+        if game.day_count == 1:
+            others = [p.name for p in game.players if p.role.name == ROLE_TWINS and p != my_player]
+            return f"Song sinh: {', '.join(others)}" if others else "Lẻ loi."
+        return None
+
+class MysticSeer(Role):
+    def __init__(self): super().__init__(ROLE_MYSTIC_SEER, "Villager", "Soi role chính xác.")
+    def on_night(self, game, my_player):
+        targets = [(p.sid, p.name) for p in game.players if p != my_player and p.is_alive]
         tid = my_player.wait_for_input("🔮 Soi role ai?", targets)
         t = game.get_player_by_id(tid)
         if t: return f"Vai trò của {t.name}: {t.role.name}"
         return None
 
-class ApprenticeSeer(Role): # Tiên tri tập sự
-    def __init__(self):
-        super().__init__(ROLE_APPRENTICE_SEER, "Villager", "Kế thừa Tiên tri.")
-        self.wake_order = 2.3
+class Cursed(Role):
+    def __init__(self): super().__init__(ROLE_CURSED, "Villager", "Bị cắn hóa Sói.")
 
+class LittleGirl(Role):
+    def __init__(self): super().__init__(ROLE_LITTLE_GIRL, "Villager", "Soi Sói nếu Bà chết.")
     def on_night(self, game, my_player):
-        seer_alive = any(p.is_alive and p.role.name == ROLE_SEER for p in game.players)
-        if seer_alive: return "Tiên tri còn sống."
+        granny_dead = any(p.role.name == ROLE_GRANNY and not p.is_alive for p in game.players)
+        if not granny_dead: return "Bà vẫn khỏe."
         
-        targets = [(str(id(p)), p.name) for p in game.players if p != my_player and p.is_alive]
-        tid = my_player.wait_for_input("👁️ [THỨC TỈNH] Soi ai?", targets)
-        t = game.get_player_by_id(tid)
-        if t:
-            is_bad = (t.role.team == "Werewolf") or (t.role.name == ROLE_LYCAN)
-            return f"{t.name} là {'PHE XẤU' if is_bad else 'PHE TỐT'}"
-        return None
-
-class ParanormalInvestigator(Role): # Nhà ngoại cảm
-    def __init__(self):
-        super().__init__(ROLE_PARANORMAL, "Villager", "Soi 2 người cùng phe không.")
-
-    def on_night(self, game, my_player):
-        targets = [(str(id(p)), p.name) for p in game.players if p != my_player and p.is_alive]
-        if len(targets) < 2: return "Không đủ người."
+        # Danh sách soi được (CONST)
+        targets = [
+            ROLE_WEREWOLF, ROLE_ALPHA_WOLF, ROLE_LEADER_WOLF, 
+            ROLE_WOLF_CUB, ROLE_LONE_WOLF, ROLE_SORCERESS, 
+            ROLE_DIRE_WOLF, ROLE_VEGETARIAN_WOLF, ROLE_WOLFMAN
+        ]
+        visible = [p for p in game.players if p.is_alive and p.role.name in targets and p != my_player]
         
-        id1 = my_player.wait_for_input("🔍 Người 1:", targets)
-        t2 = [x for x in targets if x[0] != id1]
-        id2 = my_player.wait_for_input("🔍 Người 2:", t2)
-        
-        p1 = game.get_player_by_id(id1)
-        p2 = game.get_player_by_id(id2)
-        if p1 and p2:
-            return f"{p1.name} và {p2.name} {'CÙNG' if p1.role.team == p2.role.team else 'KHÁC'} phe."
-        return None
+        if visible:
+            wolf = random.choice(visible)
+            return f"👀 Hé lộ: {wolf.name} là {wolf.role.name}!"
+        return "Không thấy bóng sói."
 
-class Detective(Role): # Thám tử
-    def __init__(self):
-        super().__init__(ROLE_DETECTIVE, "Villager", "Soi xem ai đã giết người.")
-    def on_night(self, game, my_player):
-        targets = [(str(id(p)), p.name) for p in game.players if p != my_player and p.is_alive]
-        tid = my_player.wait_for_input("🕵️ Điều tra ai?", targets)
-        t = game.get_player_by_id(tid)
-        if t:
-            criminal = t.role.name in [ROLE_WEREWOLF, ROLE_ALPHA_WOLF, ROLE_TERRORIST, ROLE_VAMPIRE, ROLE_LONE_WOLF]
-            return f"{t.name} {'LÀ' if criminal else 'KHÔNG PHẢI'} tội phạm."
-        return None
+class Granny(Role):
+    def __init__(self): super().__init__(ROLE_GRANNY, "Villager", "Chết -> Cháu thức tỉnh.")
+
 
 # ==========================================
-# NHÓM CHỨC NĂNG ĐẶC BIỆT
+# 2. PHE SÓI (WEREWOLF FACTION)
 # ==========================================
 
-class Witch(Role): # Phù thủy
-    def __init__(self):
-        super().__init__(ROLE_WITCH, "Villager", "Cứu/Giết.")
-        self.wake_order = 5
-        self.has_heal = True; self.has_poison = True
+class Werewolf(Role):
+    def __init__(self): super().__init__(ROLE_WEREWOLF, "Werewolf", "Cắn.")
 
+class LeaderWolf(Role):
+    def __init__(self): super().__init__(ROLE_LEADER_WOLF, "Werewolf", "Cắn 2.")
+
+class AlphaWolf(Role):
+    def __init__(self): 
+        super().__init__(ROLE_ALPHA_WOLF, "Werewolf", "Biến hình.")
+        self.ability_used = False
+
+class WolfCub(Role):
+    def __init__(self): super().__init__(ROLE_WOLF_CUB, "Werewolf", "Chết -> Cắn thêm.")
+    def on_death(self, game, my_player):
+        game.status["extra_wolf_kill"] = True
+        game.broadcast(CMD_SYSTEM, "🐺 Sói Con chết! Đêm mai Sói hung hãn hơn!")
+
+class LoneWolf(Role):
+    def __init__(self): super().__init__(ROLE_LONE_WOLF, "Werewolf", "Thắng lẻ.")
+
+class Sorceress(Role):
+    def __init__(self): super().__init__(ROLE_SORCERESS, "Werewolf", "Soi Tiên tri.")
     def on_night(self, game, my_player):
-        res = []
-        victim = next((p for p in game.players if p.status.get("targeted") and p.is_alive), None)
-        
-        if self.has_heal and victim:
-            c = my_player.wait_for_input(f"⚗️ Cứu {victim.name}?", [("YES","Có"),("NO","Không")])
-            if c == "YES":
-                victim.status["targeted"] = False; victim.status["protected_by_bodyguard"] = True
-                self.has_heal = False; res.append(f"Đã cứu {victim.name}")
-        
-        if self.has_poison:
-            targets = [(str(id(p)), p.name) for p in game.players if p.is_alive and p != my_player] + [("SKIP","Không")]
-            c = my_player.wait_for_input("☠️ Độc ai?", targets)
-            if c != "SKIP":
-                t = game.get_player_by_id(c)
-                if t:
-                    t.status["targeted"] = True
-                    self.has_poison = False; res.append(f"Đã độc {t.name}")
-        return ", ".join(res) if res else "Ngủ."
-
-class Troublemaker(Role): # Kẻ phá rối
-    def __init__(self):
-        super().__init__(ROLE_TROUBLEMAKER, "Villager", "Tráo bài 2 người (1 lần).")
-        self.used = False; self.wake_order = 3
-
-    def on_night(self, game, my_player):
-        if self.used: return None
-        targets = [(str(id(p)), p.name) for p in game.players if p != my_player and p.is_alive]
-        if len(targets) < 2: return "Thiếu người."
-        
-        id1 = my_player.wait_for_input("🔄 Người 1:", targets)
-        t2 = [x for x in targets if x[0] != id1]
-        id2 = my_player.wait_for_input("🔄 Người 2:", t2)
-        
-        p1 = game.get_player_by_id(id1)
-        p2 = game.get_player_by_id(id2)
-        if p1 and p2:
-            p1.role, p2.role = p2.role, p1.role
-            self.used = True
-            return f"Đã tráo {p1.name} <-> {p2.name}"
-        return None
-
-class Cupid(Role): # Thần tình yêu
-    def __init__(self):
-        super().__init__(ROLE_CUPID, "Villager", "Ghép đôi (Đêm 1).")
-        self.wake_order = 0.1
-
-    def on_night(self, game, my_player):
-        if game.day_count > 1: return None
-        targets = [(str(id(p)), p.name) for p in game.players if p.is_alive]
-        if len(targets) < 2: return None
-        
-        id1 = my_player.wait_for_input("💘 Người 1:", targets)
-        t2 = [x for x in targets if x[0] != id1]
-        id2 = my_player.wait_for_input("💘 Người 2:", t2)
-        
-        p1 = game.get_player_by_id(id1)
-        p2 = game.get_player_by_id(id2)
-        if p1 and p2:
-            p1.lover_id = id2; p2.lover_id = id1
-            p1.send({"type":"SYS", "payload":f"💘 BẠN YÊU {p2.name}!"})
-            p2.send({"type":"SYS", "payload":f"💘 BẠN YÊU {p1.name}!"})
-            return f"Đã ghép {p1.name} ❤️ {p2.name}"
-        return None
-
-class Hoodlum(Role): # Du côn
-    def __init__(self):
-        super().__init__(ROLE_HOODLUM, "Solo", "Thắng nếu 2 mục tiêu chết & mình sống.")
-    def on_night(self, game, my_player):
-        if game.day_count == 1:
-            targets = [(str(id(p)), p.name) for p in game.players if p != my_player and p.is_alive]
-            if len(targets) < 2: return "Thiếu người."
-            id1 = my_player.wait_for_input("🎯 Mục tiêu 1:", targets)
-            t2 = [x for x in targets if x[0] != id1]
-            id2 = my_player.wait_for_input("🎯 Mục tiêu 2:", t2)
-            return f"MỤC TIÊU: {id1}, {id2}" 
-        return None
-
-class Drunk(Role): # Bợm nhậu
-    def __init__(self):
-        super().__init__(ROLE_DRUNK, "Villager", "Đêm 3 hóa role mới.")
-
-class Magician(Role): # Pháp sư
-    def __init__(self):
-        super().__init__(ROLE_MAGICIAN, "Villager", "Yểm bùa câm.")
-    def on_night(self, game, my_player):
-        targets = [(str(id(p)), p.name) for p in game.players if p.is_alive]
-        tid = my_player.wait_for_input("😶 Yểm bùa ai?", targets)
+        targets = [(p.sid, p.name) for p in game.players if p != my_player and p.is_alive]
+        tid = my_player.wait_for_input("🔮 Tìm Tiên tri:", targets)
         t = game.get_player_by_id(tid)
         if t:
-            t.status["silenced"] = True
-            return f"Đã yểm bùa {t.name}"
+            seers = [ROLE_SEER, ROLE_APPRENTICE_SEER, ROLE_MYSTIC_SEER, ROLE_AURA_SEER]
+            return f"{t.name} {'LÀ' if t.role.name in seers else 'KHÔNG PHẢI'} Tiên Tri."
         return None
 
-class OldHag(Role): # Mụ già
-    def __init__(self):
-        super().__init__(ROLE_OLD_HAG, "Villager", "Ám 1 người (bị câm).")
-    def on_night(self, game, my_player):
-        targets = [(str(id(p)), p.name) for p in game.players if p.is_alive]
-        tid = my_player.wait_for_input("🧙‍♀️ Ám ai?", targets)
-        t = game.get_player_by_id(tid)
-        if t:
-            t.status["silenced"] = True
-            return f"Đã ám {t.name}"
-        return None
+class DireWolf(Role):
+    def __init__(self): 
+        # Sửa mô tả cho đúng logic mới
+        super().__init__(ROLE_DIRE_WOLF, "Werewolf", "Đêm 1 dậy cùng bầy. Ngủ đông đến khi là Sói cuối cùng.")
 
-class Vampire(Role): # Ma cà rồng
-    def __init__(self):
-        super().__init__(ROLE_VAMPIRE, "Solo", "Cắn người. Chết chậm.")
+class VegetarianWolf(Role):
+    def __init__(self): super().__init__(ROLE_VEGETARIAN_WOLF, "Werewolf", "Ăn chay.")
+    def on_night(self, game, my_player): return "Ăn chay ngủ ngon."
+
+class Wolfman(Role):
+    def __init__(self): super().__init__(ROLE_WOLFMAN, "Werewolf", "Soi ra Dân.")
+
+# ==========================================
+# 3. PHE THỨ 3 (NEUTRAL)
+# ==========================================
+
+class Terrorist(Role):
+    def __init__(self): super().__init__(ROLE_TERRORIST, "Neutral", "Nổ.")
+
+class Tanner(Role):
+    def __init__(self): super().__init__(ROLE_TANNER, "Neutral", "Thích chết.")
+
+class Vampire(Role):
+    def __init__(self): super().__init__(ROLE_VAMPIRE, "Neutral", "Hút máu.")
     def on_night(self, game, my_player):
-        targets = [(str(id(p)), p.name) for p in game.players if p != my_player and p.is_alive]
+        targets = [(p.sid, p.name) for p in game.players if p != my_player and p.is_alive]
         tid = my_player.wait_for_input("🧛 Cắn ai?", targets)
         t = game.get_player_by_id(tid)
         if t:
@@ -414,53 +334,126 @@ class Vampire(Role): # Ma cà rồng
             return f"Đã cắn {t.name}"
         return None
 
-class Twins(Role): # Song sinh
-    def __init__(self):
-        super().__init__(ROLE_TWINS, "Solo", "Thắng nếu cả 2 còn sống và hết Sói.")
-        self.wake_order = 0.3
+class CultLeader(Role):
+    def __init__(self): 
+        super().__init__(ROLE_CULT_LEADER, "Neutral", "Truyền đạo.")
+        self.followers = []
     def on_night(self, game, my_player):
-        if game.day_count == 1:
-            for p in game.players:
-                if p != my_player and p.role.name == ROLE_TWINS:
-                    return f"Người anh em: {p.name}"
-            return "Bạn lẻ loi."
+        targets = [(p.sid, p.name) for p in game.players if p != my_player and p.is_alive and p.sid not in self.followers]
+        tid = my_player.wait_for_input("🙏 Truyền đạo:", targets)
+        if tid:
+            self.followers.append(tid)
+            t = game.get_player_by_id(tid)
+            if t: 
+                t.send({"type": CMD_SYSTEM, "payload": "🙏 Bạn đã gia nhập Giáo Phái!"})
+                return f"Đã dụ dỗ {t.name}"
         return None
 
-class Granny(Role): # Bà ngoại
-    def __init__(self):
-        super().__init__(ROLE_GRANNY, "Villager", "Chết -> Cô bé thức tỉnh.")
-    def on_death(self, game, my_player):
-        game.broadcast("SYS", "👵 Bà ngoại mất! Cô bé quàng khăn đỏ thức tỉnh!")
-
-class LittleGirl(Role): # Cô bé quàng khăn đỏ
-    def __init__(self):
-        super().__init__(ROLE_LITTLE_GIRL, "Villager", "Soi Sói nếu Bà chết.")
-    def on_night(self, game, my_player):
-        granny_dead = any(p.role.name == ROLE_GRANNY and not p.is_alive for p in game.players)
-        if not granny_dead: return "Bà vẫn khỏe."
-        wolves = [p for p in game.players if p.role.team == "Werewolf" and p.is_alive]
-        if wolves:
-            rev = random.choice(wolves)
-            return f"👀 {rev.name} là SÓI!"
-        return "Không thấy Sói."
-
-class CultLeader(Role): # Chủ giáo phái
-    def __init__(self):
-        super().__init__(ROLE_CULT_LEADER, "Solo", "Lôi kéo người vào đạo.")
-    def on_night(self, game, my_player):
-        return "Đang truyền đạo..." # Logic phức tạp cần Engine hỗ trợ
-
-class Doppelganger(Role): # Nhân bản
-    def __init__(self):
-        super().__init__(ROLE_DOPPELGANGER, "Villager", "Sao chép role người chết.")
-        self.target_id = None
+class Hoodlum(Role):
+    def __init__(self): 
+        super().__init__(ROLE_HOODLUM, "Neutral", "Chọn mục tiêu.")
+        self.targets = []
     def on_night(self, game, my_player):
         if game.day_count == 1:
-            targets = [(str(id(p)), p.name) for p in game.players if p != my_player and p.is_alive]
-            self.target_id = my_player.wait_for_input("👤 Sao chép ai?", targets)
+            targets = [(p.sid, p.name) for p in game.players if p != my_player and p.is_alive]
+            if len(targets) < 2: return "Thiếu người."
+            id1 = my_player.wait_for_input("Mục tiêu 1:", targets)
+            t2 = [x for x in targets if x[0] != id1]
+            id2 = my_player.wait_for_input("Mục tiêu 2:", t2)
+            self.targets = [id1, id2]
             return "Đã chọn mục tiêu."
         return None
 
-class Tanner(Role): # Kẻ chán đời
-    def __init__(self):
-        super().__init__(ROLE_TANNER, "Solo", "Thắng nếu bị treo cổ.")
+class Mummy(Role):
+    def __init__(self): super().__init__(ROLE_MUMMY, "Neutral", "Thôi miên.")
+    def on_night(self, game, my_player):
+        targets = [(p.sid, p.name) for p in game.players if p != my_player and p.is_alive]
+        tid = my_player.wait_for_input("🤕 Thôi miên ai?", targets)
+        t = game.get_player_by_id(tid)
+        if t:
+            # SỬA LỖI: Lưu TÊN (Name) thay vì SID để tránh lỗi khi F5
+            t.status["hypnotized_by"] = my_player.name 
+            return f"Đã thôi miên {t.name}."
+        return None
+
+class BloodyMary(Role):
+    def __init__(self): 
+        super().__init__(ROLE_BLOODY_MARY, "Neutral", "Chết -> Hồn ma báo thù hằng đêm.")
+
+    def on_night(self, game, my_player):
+        # Nếu còn sống thì ngủ như bình thường
+        if my_player.is_alive: 
+            return None
+
+        # Lấy thông tin chết vào buổi nào (được lưu trong engine)
+        death_phase = my_player.status.get("death_phase")
+        if not death_phase: return None
+
+        targets = []
+        msg = ""
+
+        if death_phase == "NIGHT":
+            # Chết ban đêm -> Giết Sói + Phe 3
+            msg = "🩸 Báo thù (Sói/Phe 3):"
+            # Lọc mục tiêu: Còn sống VÀ (là Sói HOẶC là Phe 3)
+            targets = [(p.sid, p.name) for p in game.players if p.is_alive and (p.role.team == "Werewolf" or p.role.team == "Neutral")]
+        else: 
+            # Chết ban ngày (DAY) -> Giết Dân
+            msg = "🩸 Báo thù (Dân làng):"
+            # Lọc mục tiêu: Còn sống VÀ là Dân
+            targets = [(p.sid, p.name) for p in game.players if p.is_alive and p.role.team == "Villager"]
+
+        if not targets: return "👻 Không còn ai để báo thù."
+
+        tid = my_player.wait_for_input(msg, targets)
+        t = game.get_player_by_id(tid)
+        if t:
+            t.status["killed_by_bloody_mary"] = True
+            return f"👻 Đã chọn ám sát {t.name}."
+        
+        return None
+
+class Chupacabra(Role):
+    def __init__(self): 
+        super().__init__(ROLE_CHUPACABRA, "Neutral", "Ăn Sói (Sói hết -> Ăn Dân).")
+
+    def on_night(self, game, my_player):
+        # 1. Kiểm tra xem còn Sói nào sống không (Trừ bản thân nếu bị tính là Wolf team, nhưng Chupa là Neutral nên ko sao)
+        wolves_alive = any(p.is_alive and p.role.team == "Werewolf" for p in game.players)
+        
+        # 2. Xác định mục tiêu và câu hỏi dựa trên tình hình
+        msg_prompt = "🩸 Tìm Sói:"
+        if not wolves_alive:
+            msg_prompt = "🩸 Sói đã tuyệt chủng! Ăn thịt bất kỳ ai:"
+        
+        targets = [(p.sid, p.name) for p in game.players if p != my_player and p.is_alive]
+        tid = my_player.wait_for_input(msg_prompt, targets)
+        t = game.get_player_by_id(tid)
+        
+        if t:
+            if wolves_alive:
+                # --- TRƯỜNG HỢP CÒN SÓI: CHỈ ĂN ĐƯỢC SÓI ---
+                if t.role.team == "Werewolf":
+                    t.status["killed_by_chupacabra"] = True
+                    return f"NGON! {t.name} là Sói và đã chết."
+                else:
+                    return f"SAI! {t.name} không phải Sói. Bạn không thể ăn."
+            else:
+                # --- TRƯỜNG HỢP HẾT SÓI: ĂN TẠP ---
+                t.status["killed_by_chupacabra"] = True
+                return f"Đã ăn thịt {t.name} (Vì Sói đã hết)."
+        
+        return None
+    
+'''class Detective(Role):
+    def __init__(self): super().__init__(ROLE_DETECTIVE, "Villager", "Điều tra tội phạm.")
+    def on_night(self, game, my_player):
+        targets = [(p.sid, p.name) for p in game.players if p != my_player and p.is_alive]
+        tid = my_player.wait_for_input("🕵️ Điều tra ai?", targets)
+        t = game.get_player_by_id(tid)
+        if t:
+            # Check xem có phải role giết người không
+            killers = [ROLE_WEREWOLF, ROLE_ALPHA_WOLF, ROLE_LEADER_WOLF, ROLE_VAMPIRE, ROLE_CHUPACABRA, ROLE_TERRORIST]
+            is_killer = t.role.name in killers
+            return f"{t.name} {'LÀ' if is_killer else 'KHÔNG PHẢI'} tội phạm."
+        return None'''

@@ -9,8 +9,8 @@
         /* CORE */
         * { box-sizing: border-box; scrollbar-width: thin; scrollbar-color: #444 #111; }
         body { 
-            background: #050505; color: #e0e0e0; font-family: 'VT323', monospace; /* PHÔNG MỚI */
-            font-size: 20px; /* Tăng size */
+            background: #050505; color: #e0e0e0; font-family: 'VT323', monospace;
+            font-size: 20px;
             margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden;
         }
         
@@ -103,12 +103,25 @@
         #preview-img { height: 120px; width: auto; display: none; border: 4px solid #fcd34d; margin-bottom: 10px; image-rendering: pixelated; }
         #preview-name { font-size: 30px; color: #fcd34d; margin-bottom: 5px; }
         #preview-desc { font-size: 20px; color: #ccc; }
+
+        .chat-controls {
+            display: flex; gap: 5px; padding: 10px; 
+            border-top: 2px solid #333; background: #111;
+        }
+        #admin-msg-input {
+            flex: 1; background: #000; border: 1px solid #444; 
+            color: #fff; padding: 5px 10px; font-family: 'VT323', monospace; font-size: 18px;
+        }
+        .btn-send {
+            background: #e94560; color: #fff; border: 1px solid #b00020;
+            cursor: pointer; font-family: 'VT323', monospace; font-size: 18px;
+        }
     </style>
 </head>
 <body>
 
     <div class="top-bar">
-        <div class="title">GOD MODE <span style="font-size:18px; color:#666">v2.0</span></div>
+        <div class="title">GOD MODE <span style="font-size:18px; color:#666">v3.0 (Auto Config)</span></div>
         <div class="room-info" onclick="copyRoomID()" title="Click để copy">
             ID: <span id="room-id-display">...</span>
         </div>
@@ -146,6 +159,11 @@
             </div>
             <div class="panel-header">LOG HỆ THỐNG</div>
             <div id="log-console"></div>
+            
+            <div class="chat-controls">
+                <input type="text" id="admin-msg-input" placeholder="Nhắn cho cả làng..." onkeydown="if(event.key==='Enter') sendAdminChat()">
+                <button class="btn-send" onclick="sendAdminChat()">GỬI</button>
+            </div>
         </div>
     </div>
 
@@ -160,78 +178,86 @@
     </div>
 
     <script>
-        // ... (Giữ nguyên phần script logic JS của file godmode.html trước đó) ...
-        // ... (Chỉ thay đổi CSS và HTML ở trên) ...
-        
-        // COPY LẠI ĐOẠN SCRIPT TỪ FILE GODMODE TRƯỚC VÀO ĐÂY ĐỂ CHẠY ĐƯỢC
         const socket = io();
         let myRoomId = null;
-        let ROLES_DATA = [];
+        let GLOBAL_CONFIG = {}; // Lưu config nhận từ server
         let renderTimeout;
 
+        // Tự động tạo phòng khi vào trang
         socket.emit('create_room'); 
 
+        // Nhận ID phòng và Cấu hình Role (quan trọng!)
         socket.on('room_created', data => {
             myRoomId = data.room_id;
-            ROLES_DATA = data.roles_info;
+            GLOBAL_CONFIG = data.roles_config; // Nhận từ điển config từ app.py
             document.getElementById('room-id-display').innerText = myRoomId;
             renderRoles();
         });
 
-        const FACTION_MAP = {
-            "Sói": "wolf", "Sói con": "wolf", "Sói đầu đàn": "wolf", "Sói ăn chay": "wolf", "Nanh sói": "wolf",
-            "Ma cà rồng": "neutral", "Kẻ chán đời": "neutral", "Khủng bố": "neutral", "Du côn": "neutral", "Chủ giáo phái": "neutral", "Song sinh": "neutral", "Thần tình yêu": "neutral", "Sói đơn độc": "neutral",
-        };
-
+        // Vẽ danh sách Roles dựa trên Config server gửi xuống
         function renderRoles() {
             const colVil = document.getElementById('col-villager');
             const colWolf = document.getElementById('col-wolf');
             const colNeu = document.getElementById('col-neutral');
 
-            ROLES_DATA.forEach(role => {
-                let fac = FACTION_MAP[role.name] || "villager";
-                let container = (fac === "wolf") ? colWolf : (fac === "neutral") ? colNeu : colVil;
-                let def = (role.name === "Sói" || role.name === "Dân Làng") ? 1 : 0;
-                let id = 'role-' + role.name.replace(/ /g, '_');
+            // Duyệt qua từng Role ID trong Config
+            for (const [rID, info] of Object.entries(GLOBAL_CONFIG)) {
+                // Xác định cột dựa trên 'team' trong config
+                let container;
+                if (info.team === 'wolf') container = colWolf;
+                else if (info.team === 'neutral') container = colNeu;
+                else container = colVil;
+
+                // ID cho input (dùng chính ID Tiếng Anh)
+                let inputId = 'role-input-' + rID;
                 
+                // Mặc định Dân Làng và Sói thường có sẵn 1 slot
+                let defVal = (rID === "Villager" || rID === "Werewolf") ? 1 : 0;
+
                 let html = `
-                    <div class="role-card" onmouseenter="showPreview('${role.name}')">
-                        <img src="/static/assets/${role.img}" class="role-icon">
-                        <div class="role-info">${role.name}</div>
-                        <input type="number" min="0" value="${def}" id="${id}" class="role-input" onchange="updateCounter()">
+                    <div class="role-card" onmouseenter="showPreview('${rID}')">
+                        <img src="/static/assets/${info.img}" class="role-icon">
+                        <div class="role-info">${info.name}</div>
+                        <input type="number" min="0" value="${defVal}" id="${inputId}" class="role-input" onchange="updateCounter()">
                     </div>
                 `;
                 container.innerHTML += html;
-            });
+            }
             updateCounter();
         }
 
-        function showPreview(roleName) {
-            const role = ROLES_DATA.find(r => r.name === roleName);
-            if(role) {
+        // Hiển thị xem trước ảnh và mô tả
+        function showPreview(rID) {
+            const info = GLOBAL_CONFIG[rID];
+            if(info) {
                 document.getElementById('role-preview').querySelector('div').style.display = 'none';
                 const img = document.getElementById('preview-img');
-                img.src = '/static/assets/' + role.img;
+                img.src = '/static/assets/' + info.img;
                 img.style.display = 'block';
-                document.getElementById('preview-name').innerText = role.name;
-                document.getElementById('preview-desc').innerText = role.desc;
+                document.getElementById('preview-name').innerText = info.name;
+                document.getElementById('preview-desc').innerText = info.desc;
             }
         }
 
+        // Đếm tổng số role đã chọn
         function updateCounter() {
             let total = 0;
-            ROLES_DATA.forEach(r => {
-                let id = 'role-' + r.name.replace(/ /g, '_');
-                let el = document.getElementById(id);
+            // Duyệt qua tất cả các role trong config
+            for (const rID of Object.keys(GLOBAL_CONFIG)) {
+                let el = document.getElementById('role-input-' + rID);
                 if(el) total += parseInt(el.value) || 0;
-            });
+            }
+
             let pCount = parseInt(document.getElementById('p-count').innerText) || 0;
             const txt = document.getElementById('total-roles');
             txt.innerText = total;
+            
+            // Đổi màu nếu khớp số lượng
             txt.style.color = (total === pCount && total > 0) ? '#4caf50' : '#ff5252';
             document.getElementById('total-players').innerText = pCount;
         }
 
+        // Cập nhật danh sách người chơi (Real-time)
         socket.on('admin_update', data => {
             clearTimeout(renderTimeout);
             renderTimeout = setTimeout(() => {
@@ -248,20 +274,24 @@
                 const div = document.createElement('div');
                 div.className = 'player-row';
                 let statusClass = p.alive ? 'p-alive' : 'p-dead';
-                let statusIcon = p.alive ? '[ON]' : '[OFF]';
+                let statusIcon = p.alive ? '❤️' : '💀';
+                
                 div.innerHTML = `
-                    <div>
-                        <span style="font-size:16px">${statusIcon}</span>
-                        <span class="${statusClass}">${p.name}</span>
-                        <span style="font-size:16px; color:#888;">[${p.role}]</span>
+                    <div style="flex:1">
+                        <div style="display:flex; justify-content:space-between">
+                            <span class="${statusClass}" style="font-weight:bold">${p.name}</span>
+                            <span>${statusIcon}</span>
+                        </div>
+                        <div style="font-size:16px; color:#888;">Role: [ ${p.role} ]</div>
                     </div>
-                    <span class="kick-x" onclick="kick('${p.sid}')">X</span>
+                    ${p.alive ? `<span class="kick-x" onclick="kick('${p.sid}')" title="Kick">🚫</span>` : ''}
                 `;
                 fragment.appendChild(div);
             });
             list.innerHTML = '';
             list.appendChild(fragment);
 
+            // Cập nhật trạng thái nút Start
             const btnStart = document.getElementById('btn-start');
             if(data.started) {
                 btnStart.innerText = "GAME ĐANG CHẠY...";
@@ -275,6 +305,7 @@
             updateCounter();
         }
 
+        // Log hệ thống
         socket.on('server_log', data => {
             const box = document.getElementById('log-console');
             let time = new Date().toLocaleTimeString('vi-VN', {hour12:false});
@@ -287,28 +318,41 @@
             alert("Đã copy ID: " + myRoomId);
         }
 
+        // Gửi lệnh bắt đầu game
         function startGame() {
-            let config = {};
-            ROLES_DATA.forEach(r => {
-                let id = 'role-' + r.name.replace(/ /g, '_');
-                let el = document.getElementById(id);
+            let selectedRoles = {};
+            
+            // Thu thập số lượng từ các input
+            for (const rID of Object.keys(GLOBAL_CONFIG)) {
+                let el = document.getElementById('role-input-' + rID);
                 if(el) {
                     let val = parseInt(el.value);
-                    if(val > 0) config[r.name] = val;
+                    if(val > 0) selectedRoles[rID] = val; // Key là ID tiếng Anh (VD: "Werewolf")
                 }
-            });
+            }
             
             let total = document.getElementById('total-roles').innerText;
             let players = document.getElementById('total-players').innerText;
             
             if(total != players) {
-                if(!confirm(`⚠️ Cảnh báo: Số role (${total}) không khớp số người (${players}).\nServer sẽ tự động điều chỉnh. Tiếp tục?`)) return;
+                if(!confirm(`⚠️ Cảnh báo: Số role (${total}) không khớp số người (${players}).\nServer sẽ tự động bù Dân Làng hoặc cắt bớt. Tiếp tục?`)) return;
             }
-            socket.emit('admin_start_game', {room_id: myRoomId, roles: config});
+            
+            // Gửi về server map: { "Werewolf": 2, "Seer": 1, ... }
+            socket.emit('admin_start_game', {room_id: myRoomId, roles: selectedRoles});
         }
 
         function endDiscuss() { socket.emit('admin_end_discussion', {room_id: myRoomId}); }
-        function kick(sid) { if(confirm("Kick?")) socket.emit('admin_kick', {room_id: myRoomId, sid: sid}); }
+        function kick(sid) { if(confirm("Kick người này?")) socket.emit('admin_kick', {room_id: myRoomId, sid: sid}); }
+
+        function sendAdminChat() {
+            const inp = document.getElementById('admin-msg-input');
+            const msg = inp.value.trim();
+            if (msg && myRoomId) {
+                socket.emit('admin_chat_msg', {room_id: myRoomId, msg: msg});
+                inp.value = ''; // Xóa ô nhập sau khi gửi
+            }
+        }
     </script>
 </body>
 </html>

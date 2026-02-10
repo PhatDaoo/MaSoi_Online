@@ -1,70 +1,63 @@
-# common/const.py
+# GIAO THỨC
+CMD_NAME = "NAME"
+CMD_MSG = "MSG"
+CMD_SYSTEM = "SYS"
+CMD_ROLE = "ROLE"
+CMD_ACTION = "ACT"
+CMD_INPUT_REQ = "INPUT"
+CMD_PHASE = "PHASE"
+CMD_OVER = "OVER"
 
-# ==========================
-# CẤU HÌNH MẠNG
-# ==========================
-HOST = '0.0.0.0'
-PORT = 5555
-BUFFER_SIZE = 4096
-FORMAT = 'utf-8'
+# === DANH SÁCH ROLE ID ===
 
-# ==========================
-# GIAO THỨC (PROTOCOL)
-# ==========================
-CMD_NAME = "NAME"           # Gửi tên
-CMD_MSG = "MSG"             # Chat thường
-CMD_SYSTEM = "SYS"          # Thông báo hệ thống
-CMD_ROLE = "ROLE"           # Server báo role cho client
-CMD_ACTION = "ACT"          # Client gửi hành động
-CMD_INPUT_REQ = "INPUT"     # Server yêu cầu nhập liệu
-CMD_PHASE = "PHASE"         # Báo hiệu Ngày/Đêm
-CMD_OVER = "OVER"           # <--- THÊM DÒNG NÀY (Kết thúc game)
+# Phe Sói
+ROLE_WEREWOLF = "Werewolf"
+ROLE_ALPHA_WOLF = "Alpha Wolf"       
+ROLE_LEADER_WOLF = "Leader Wolf"     
+ROLE_WOLF_CUB = "Wolf Cub"
+ROLE_LONE_WOLF = "Lone Wolf"
+ROLE_SORCERESS = "Sorceress"
+ROLE_DIRE_WOLF = "Dire Wolf"
+ROLE_VEGETARIAN_WOLF = "Vegetarian Wolf"
+ROLE_WOLFMAN = "Wolfman"
 
-# ==========================
-# DANH SÁCH ROLES (GIỮ NGUYÊN NHƯ CŨ)
-# ==========================
-# (Bạn giữ nguyên phần danh sách role bên dưới của file cũ nhé)
-ROLE_QUAN_TRO = "Quản trò"
-ROLE_VILLAGER = "Dân Làng"
-ROLE_SEER = "Tiên Tri"
-ROLE_PROTECTOR = "Bảo vệ"
-ROLE_HUNTER = "Thợ săn"
-ROLE_WITCH = "Phù thủy"
-ROLE_HUNTRESS = "Nữ thợ săn"
-ROLE_APPRENTICE_SEER = "Tiên tri tập sự"
-ROLE_MYSTIC_SEER = "Tiên tri bí ẩn"
-ROLE_AURA_SEER = "Tiên tri hào quang"
-ROLE_SICK_MAN = "Người bệnh"
-ROLE_MAYOR = "Thị trưởng"
-ROLE_PRIEST = "Mục sư"
-ROLE_DETECTIVE = "Thám tử"
-ROLE_LYCAN = "Con lai"
-ROLE_GRANNY = "Bà ngoại"
-ROLE_LITTLE_GIRL = "Cô bé quàng khăn đỏ"
-ROLE_TROUBLEMAKER = "Kẻ Phá Rối"
-ROLE_PARANORMAL = "Nhà ngoại cảm"
-ROLE_TOUGH_GUY = "Thanh niên cứng"
-ROLE_GHOST = "Hồn ma"
-ROLE_DRUNK = "Bợm nhậu"
-ROLE_PRINCE = "Hoàng tử"
-ROLE_GAMBLER = "Con bạc"
-ROLE_MAGICIAN = "Pháp sư"
-ROLE_OLD_HAG = "Mụ già"
-ROLE_CUPID = "Thần tình yêu"
-ROLE_CURSED = "Kẻ bị nguyền"
+# Phe Dân
+ROLE_VILLAGER = "Villager"
+ROLE_SEER = "Seer"
+ROLE_BODYGUARD = "Bodyguard"
+ROLE_HUNTER = "Hunter"
+ROLE_WITCH = "Witch"
+ROLE_CUPID = "Cupid"
+ROLE_LYCAN = "Lycan"
+ROLE_OLD_MAN = "Old Man"
+ROLE_APPRENTICE_SEER = "Apprentice Seer"
+ROLE_TOUGH_GUY = "Tough Guy"
+ROLE_SICK_MAN = "Sick Man"
+ROLE_PRINCE = "Prince"
+ROLE_INSOMNIAC = "Insomniac"
+ROLE_BEHOLDER = "Beholder"
+ROLE_HUNTRESS = "Huntress"
+ROLE_MENTALIST = "Mentalist"
+ROLE_REVEALER = "Revealer"
+ROLE_PRIEST = "Priest"
+ROLE_DOPPELGANGER = "Doppelganger"
+ROLE_DRUNK = "Drunk"
+ROLE_DETECTIVE = "Detective"
+ROLE_AURA_SEER = "Aura Seer"
+ROLE_MAYOR = "Mayor"
+ROLE_MARTYR = "Martyr"
+ROLE_TWINS = "Twins"
+ROLE_MYSTIC_SEER = "Mystic Seer"
+ROLE_CURSED = "Cursed"
+ROLE_LITTLE_GIRL = "Little Girl"
+ROLE_GRANNY = "Granny"
 
-ROLE_WEREWOLF = "Sói"
-ROLE_VEGETARIAN_WOLF = "Sói ăn chay"
-ROLE_ALPHA_WOLF = "Sói đầu đàn"
-ROLE_WOLF_CUB = "Sói con"
-ROLE_DIRE_WOLF = "Nanh sói"
-ROLE_MEDIUM = "Bà đồng"
-
-ROLE_LONE_WOLF = "Sói đơn độc"
-ROLE_VAMPIRE = "Ma cà rồng"
-ROLE_TERRORIST = "Khủng bố"
-ROLE_CULT_LEADER = "Chủ giáo phái"
-ROLE_DOPPELGANGER = "Nhân bản"
-ROLE_HOODLUM = "Du côn"
-ROLE_TANNER = "Kẻ chán đời"
-ROLE_TWINS = "Song sinh"
+# Phe 3
+ROLE_TERRORIST = "Terrorist"
+ROLE_TANNER = "Tanner"
+ROLE_VAMPIRE = "Vampire"
+ROLE_CULT_LEADER = "Cult Leader"
+ROLE_HOODLUM = "Hoodlum"
+ROLE_MUMMY = "Mummy"
+ROLE_BLOODY_MARY = "Bloody Mary"
+ROLE_CHUPACABRA = "Chupacabra"
