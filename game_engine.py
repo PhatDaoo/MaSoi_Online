@@ -467,7 +467,11 @@ class GameEngine:
                         n.is_alive = False; final_dead.append(n)
 
             if victim.role.name == ROLE_HUNTER:
-                self.trigger_hunter_revenge(victim, final_dead)
+                # Chỉ bắn khi bị treo cổ (có trạng thái execution)
+                if victim.status.get("execution"):
+                    self.trigger_hunter_revenge(victim, final_dead)
+                else:
+                    self.log(f"[HUNTER] {victim.name} chết nhưng không được bắn (Không phải bị treo cổ).")
             
             if victim.role.name == ROLE_DIRE_WOLF:
                  if hasattr(victim.role, 'on_death'): victim.role.on_death(self, victim)
@@ -580,6 +584,9 @@ class GameEngine:
                 for k in range(15, 0, -5): self.broadcast(CMD_SYSTEM, f"⏳ {k}s..."); time.sleep(5)
                 self.broadcast(CMD_SYSTEM, "🛑 HẾT GIỜ!")
                 self.is_last_words_phase = False; self.last_words_player = None
+                
+                victim.status["execution"] = True
+
                 self.process_deaths([victim])
         else:
             self.broadcast(CMD_SYSTEM, f"⚖️ Hòa phiếu. Không ai chết.")

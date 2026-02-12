@@ -35,7 +35,8 @@ class Witch(Role):
     def __init__(self): super().__init__(ROLE_WITCH, "Villager", "Bình Cứu/Độc.")
 
 class Hunter(Role):
-    def __init__(self): super().__init__(ROLE_HUNTER, "Villager", "Chết kéo theo.")
+    def __init__(self): 
+        super().__init__(ROLE_HUNTER, "Villager", "Bị treo cổ -> Được bắn 1 người.")
 
 class Cupid(Role):
     def __init__(self): super().__init__(ROLE_CUPID, "Villager", "Ghép đôi.")

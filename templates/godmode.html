@@ -2,296 +2,434 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>MA SÓI - GOD MODE</title>
+    <title>WEREWOLF: THE GAME</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
     <style>
         /* CORE */
-        * { box-sizing: border-box; scrollbar-width: thin; scrollbar-color: #444 #111; }
+        * { box-sizing: border-box; scrollbar-width: thin; scrollbar-color: #555 #111; user-select: none; }
         body { 
             background: #050505; color: #e0e0e0; font-family: 'VT323', monospace;
-            font-size: 20px;
-            margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden;
+            font-size: 20px; margin: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden;
         }
         
         /* HEADER */
         .top-bar { 
-            background: #111; border-bottom: 2px solid #333; padding: 10px 20px; 
-            display: flex; justify-content: space-between; align-items: center; height: 60px;
+            background: #111; border-bottom: 2px solid #333; padding: 0 20px; 
+            display: flex; justify-content: space-between; align-items: center; height: 50px; flex-shrink: 0;
         }
-        .title { color: #e94560; font-size: 32px; font-weight: normal; letter-spacing: 2px; }
-        .room-info { font-size: 28px; color: #fcd34d; cursor: pointer; border: 2px dashed #555; padding: 0 15px; }
-        .room-info:hover { background: #222; border-color: #fff; }
-
-        /* LAYOUT */
+        .title { color: #e94560; font-size: 28px; letter-spacing: 2px; }
+        .room-info { font-size: 24px; color: #fcd34d; cursor: pointer; border: 1px dashed #555; padding: 0 10px; }
+        
+        /* LAYOUT MAIN */
         .container { display: flex; flex: 1; overflow: hidden; }
-        .sidebar { width: 280px; background: #0a0a0a; border-right: 2px solid #333; display: flex; flex-direction: column; }
-        .sidebar-right { width: 320px; border-left: 2px solid #333; border-right: none; }
-        .main-area { flex: 1; display: flex; flex-direction: column; padding: 10px; background: #0e0e0e; overflow-y: auto; }
         
-        .panel-header { 
-            background: #1a1a1a; padding: 8px 10px; font-size: 22px; color: #888; 
-            border-bottom: 2px solid #333; display: flex; justify-content: space-between;
-        }
+        /* SIDEBAR LEFT & RIGHT */
+        .sidebar { width: 250px; background: #080808; border-right: 1px solid #333; display: flex; flex-direction: column; flex-shrink: 0; }
+        .sidebar-right { width: 300px; border-left: 1px solid #333; border-right: none; background: #0a0a0a; }
         
-        /* LISTS */
+        .panel-header { background: #151515; padding: 5px 10px; font-size: 20px; color: #888; border-bottom: 1px solid #333; display: flex; justify-content: space-between; }
+        
+        /* PLAYER LIST */
         #player-list { flex: 1; overflow-y: auto; padding: 5px; }
-        .player-row { 
-            display: flex; justify-content: space-between; align-items: center; 
-            padding: 5px 10px; margin-bottom: 2px; background: #111; font-size: 22px;
-        }
-        .player-row:hover { background: #222; }
-        .p-alive { color: #4caf50; }
-        .p-dead { color: #666; text-decoration: line-through; }
-        .kick-x { color: #d00; cursor: pointer; font-weight: bold; padding: 0 5px; }
+        .player-row { display: flex; justify-content: space-between; padding: 3px 10px; background: #111; margin-bottom: 2px; font-size: 18px; align-items: center; }
+        .p-alive { color: #4caf50; } .p-dead { color: #666; text-decoration: line-through; }
+        .kick-x { color: #d00; cursor: pointer; margin-left: 5px; }
 
-        /* FACTIONS */
-        .factions-container { display: flex; gap: 10px; height: 100%; }
-        .faction-col { flex: 1; display: flex; flex-direction: column; gap: 8px; min-width: 200px; }
-        .faction-header { 
-            text-align: center; padding: 5px; font-size: 24px; border-bottom: 2px solid #333; margin-bottom: 5px;
-        }
-        .fac-villager { color: #81c784; border-color: #2e7d32; }
-        .fac-wolf { color: #ff8a80; border-color: #c62828; }
-        .fac-neutral { color: #ce93d8; border-color: #ad1457; }
-
-        /* ROLE CARD */
-        .role-card { 
-            display: flex; align-items: center; background: #161616; border: 2px solid #333; 
-            padding: 5px; transition: 0.1s;
-        }
-        .role-card:hover { border-color: #fff; background: #222; }
-        .role-icon { width: 40px; height: 40px; border: 2px solid #555; margin-right: 10px; image-rendering: pixelated; }
-        .role-info { flex: 1; font-size: 22px; }
-        .role-input { 
-            width: 40px; background: #000; border: 2px solid #444; color: #fff; 
-            text-align: center; font-family: 'VT323', monospace; font-size: 22px;
-        }
-
-        /* CONTROLS */
-        .control-bar { 
-            margin-top: 10px; padding: 10px 20px; background: #111; border-top: 2px solid #333; 
-            display: flex; gap: 20px; align-items: center; justify-content: space-between;
-        }
-        .counter-box { font-size: 24px; color: #aaa; }
-        .counter-num { color: #fff; font-weight: bold; }
+        /* --- MAIN AREA (3 ROWS SLIDER) --- */
+        .main-area { flex: 1; display: flex; flex-direction: column; background: #000; overflow: hidden; }
         
-        .btn-main { 
-            padding: 5px 20px; font-weight: normal; border: 2px solid #000; 
-            cursor: pointer; font-family: 'VT323', monospace; font-size: 24px; 
-            box-shadow: 3px 3px 0 #000;
+        .faction-row {
+            flex: 1; display: flex; flex-direction: row; border-bottom: 1px solid #222;
+            position: relative; overflow: hidden;
         }
-        .btn-start { background: #2e7d32; color: white; }
-        .btn-start:hover { background: #43a047; transform: translate(-2px, -2px); }
-        .btn-start:disabled { background: #333; color: #666; cursor: not-allowed; box-shadow: none; }
-        
-        .btn-skip { background: #ff8f00; color: #000; }
-        .btn-skip:hover { background: #ffb300; transform: translate(-2px, -2px); }
+        .faction-label {
+            writing-mode: vertical-rl; text-orientation: mixed; transform: rotate(180deg);
+            width: 40px; display: flex; align-items: center; justify-content: center;
+            font-size: 24px; font-weight: bold; letter-spacing: 3px; border-right: 1px solid #333;
+            flex-shrink: 0; z-index: 20; background: #050505;
+        }
+        .lbl-villager { color: #4caf50; border-right-color: #1b5e20; }
+        .lbl-wolf { color: #ff5252; border-right-color: #b71c1c; }
+        .lbl-neutral { color: #e040fb; border-right-color: #4a148c; }
 
-        /* LOG */
-        #log-console { 
-            flex: 1; font-size: 18px; padding: 10px; overflow-y: auto; color: #ccc; 
-            line-height: 1.2;
+        /* SLIDER CONTAINER */
+        .slider-wrapper {
+            flex: 1; display: flex; align-items: center; overflow-x: auto; 
+            scroll-snap-type: x mandatory; padding: 0 40%;
+            gap: 20px; position: relative; z-index: 10;
+        }
+        .slider-wrapper::-webkit-scrollbar { height: 8px; }
+        .slider-wrapper::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+
+        /* --- MŨI TÊN CHỈ THỊ --- */
+        .center-marker {
+            position: absolute; 
+            left: calc(50% - 70px); 
+            top: 0; bottom: 0;
+            width: 150px; transform: translateX(-50%);
+            pointer-events: none;
+            z-index: 5;
+            display: flex; flex-direction: column; justify-content: space-between; align-items: center;
+            padding: 5px 0;
+        }
+        .arrow-down {
+            width: 0; height: 0;
+            border-left: 15px solid transparent; border-right: 15px solid transparent;
+            border-top: 15px solid #fcd34d; filter: drop-shadow(0 0 5px #fcd34d);
+            animation: bounceDown 1.5s infinite;
+        }
+        .arrow-up {
+            width: 0; height: 0;
+            border-left: 15px solid transparent; border-right: 15px solid transparent;
+            border-bottom: 15px solid #fcd34d; filter: drop-shadow(0 0 5px #fcd34d);
+            animation: bounceUp 1.5s infinite;
+        }
+        @keyframes bounceDown { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(5px); } }
+        @keyframes bounceUp { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-5px); } }
+
+        /* CARD STYLE */
+        .card {
+            scroll-snap-align: center;
+            width: 140px; height: 200px; 
+            background: #111; border: 2px solid #444; border-radius: 12px;
+            flex-shrink: 0; position: relative;
+            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            opacity: 0.3; transform: scale(0.8); filter: grayscale(80%);
+            cursor: pointer; overflow: hidden; /* Giữ bo góc ảnh */
         }
         
-        /* PREVIEW BOX */
-        #role-preview { 
-            height: 250px; border: 2px solid #0f0; background: #050505; 
+        .card.active {
+            opacity: 1; transform: scale(1.15); filter: grayscale(0%);
+            border-color: #fff; box-shadow: 0 0 20px rgba(255,255,255,0.1);
+            z-index: 15;
+        }
+        
+        .card-img { 
+            width: 100%; height: 100%; object-fit: cover; image-rendering: auto; 
+        }
+        
+        /* --- BADGE SỐ LƯỢNG (ĐÃ SỬA) --- */
+        .qty-badge {
+            position: absolute; 
+            top: 5px; right: 5px; /* Đưa vào trong góc 5px để không bị cắt */
+            background: #e94560; color: #fff; 
+            width: 30px; height: 30px;
+            border-radius: 50%; /* Tròn xoe */
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px; font-weight: bold;
+            border: 2px solid #ffffff; /* Thêm viền trắng để tách biệt với ảnh */
+            box-shadow: 0 2px 4px rgba(0,0,0,0.8); /* Đổ bóng nhẹ */
+            display: none; z-index: 20;
+        }
+
+        /* ZOOM BUTTON */
+        .zoom-btn {
+            position: absolute; bottom: 5px; right: 5px;
+            width: 30px; height: 30px; background: rgba(0,0,0,0.7);
+            border: 1px solid #fff; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            color: #fff; font-size: 16px; z-index: 25;
+            opacity: 0; transition: opacity 0.2s;
+        }
+        .card:hover .zoom-btn, .card.active .zoom-btn { opacity: 1; }
+        .zoom-btn:hover { background: #e94560; transform: scale(1.1); }
+
+        /* CARD MODAL */
+        #card-modal {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 9999;
+            display: none; align-items: center; justify-content: center; flex-direction: column;
+            animation: fadeIn 0.2s;
+        }
+        .modal-content {
+            position: relative; width: 340px; height: 500px;
+            background: transparent; perspective: 1000px;
+        }
+        .modal-img {
+            width: 100%; height: 100%; object-fit: contain;
+            border-radius: 15px; box-shadow: 0 0 30px rgba(255,255,255,0.2);
+            border: 2px solid #555; background: #000;
+        }
+        .modal-close-hint {
+            margin-top: 20px; color: #888; font-size: 24px; animation: blink 1s infinite;
+        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        @keyframes blink { 50% { opacity: 0.5; } }
+
+        /* CONTROL PANEL */
+        .row-control {
+            width: 180px; background: #0e0e0e; border-left: 1px solid #333;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            padding: 10px; text-align: center; margin-bottom: 10px;
+            padding: 10px; flex-shrink: 0; z-index: 20;
         }
-        #preview-img { height: 120px; width: auto; display: none; border: 4px solid #fcd34d; margin-bottom: 10px; image-rendering: pixelated; }
-        #preview-name { font-size: 30px; color: #fcd34d; margin-bottom: 5px; }
-        #preview-desc { font-size: 20px; color: #ccc; }
+        .ctrl-role-name { color: #fcd34d; font-size: 22px; text-align: center; margin-bottom: 5px; line-height: 1.1; }
+        .ctrl-role-desc { color: #777; font-size: 16px; text-align: center; margin-bottom: 10px; height: 40px; overflow: hidden; }
+        
+        .ctrl-inputs { display: flex; align-items: center; gap: 5px; }
+        .btn-qty { 
+            width: 35px; height: 35px; background: #333; color: #fff; border: 1px solid #555; 
+            font-size: 24px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+        }
+        .btn-qty:hover { background: #555; }
+        .inp-qty { 
+            width: 40px; height: 35px; background: #000; border: 1px solid #444; 
+            color: #fff; text-align: center; font-family: inherit; font-size: 24px; 
+        }
 
-        .chat-controls {
-            display: flex; gap: 5px; padding: 10px; 
-            border-top: 2px solid #333; background: #111;
+        /* BOTTOM BAR */
+        .control-bar { 
+            height: 60px; background: #111; border-top: 2px solid #333; padding: 0 20px;
+            display: flex; justify-content: space-between; align-items: center; flex-shrink: 0;
         }
-        #admin-msg-input {
-            flex: 1; background: #000; border: 1px solid #444; 
-            color: #fff; padding: 5px 10px; font-family: 'VT323', monospace; font-size: 18px;
+        .btn-start { 
+            background: #2e7d32; color: white; padding: 5px 30px; font-size: 24px; 
+            border: 2px solid #1b5e20; cursor: pointer; font-family: inherit; 
         }
-        .btn-send {
-            background: #e94560; color: #fff; border: 1px solid #b00020;
-            cursor: pointer; font-family: 'VT323', monospace; font-size: 18px;
-        }
+        .btn-skip { background: #ff8f00; color: #000; padding: 5px 20px; font-size: 22px; border: 2px solid #e65100; cursor: pointer; font-family: inherit; }
+
+        /* LOG & CHAT */
+        #log-console { flex: 1; overflow-y: auto; padding: 10px; font-size: 16px; color: #ccc; }
+        .chat-controls { display: flex; gap: 5px; padding: 10px; border-top: 1px solid #333; background: #111; }
+        #admin-msg-input { flex: 1; background: #000; border: 1px solid #444; color: #fff; padding: 5px; font-family: inherit; }
     </style>
 </head>
 <body>
 
-    <div class="top-bar">
-        <div class="title">GOD MODE <span style="font-size:18px; color:#666">v3.0 (Auto Config)</span></div>
-        <div class="room-info" onclick="copyRoomID()" title="Click để copy">
-            ID: <span id="room-id-display">...</span>
+    <div id="card-modal" onclick="closeModal()">
+        <div class="modal-content" onclick="event.stopPropagation()"> 
+            <img id="modal-img-display" class="modal-img" src="">
         </div>
+        <div class="modal-close-hint">CHẠM RA NGOÀI ĐỂ ĐÓNG</div>
+    </div>
+
+    <div class="top-bar">
+        <div class="title">WEREWOLF:THE GAME <span style="font-size:16px; color:#666">dev by qhatsdaoo</span></div>
+        <div class="room-info" onclick="copyRoomID()">ID: <span id="room-id-display">...</span></div>
     </div>
 
     <div class="container">
         <div class="sidebar">
             <div class="panel-header">
-                <span>NGƯỜI CHƠI</span>
-                <span id="p-count">0</span>
+                <span>PLAYERS</span> <span id="p-count">0</span>
             </div>
             <div id="player-list"></div>
         </div>
 
         <div class="main-area">
-            <div class="factions-container">
-                <div class="faction-col" id="col-villager">
-                    <div class="faction-header fac-villager">DÂN LÀNG</div>
-                </div>
-                <div class="faction-col" id="col-wolf">
-                    <div class="faction-header fac-wolf">PHE SÓI</div>
-                </div>
-                <div class="faction-col" id="col-neutral">
-                    <div class="faction-header fac-neutral">PHE KHÁC</div>
-                </div>
+            
+            <div class="faction-row">
+                <div class="faction-label lbl-villager">DÂN</div>
+                <div class="center-marker"><div class="arrow-down"></div><div class="arrow-up"></div></div>
+                <div class="slider-wrapper" id="slider-villager"></div>
+                <div class="row-control" id="ctrl-villager"><div style="color:#444">...</div></div>
+            </div>
+
+            <div class="faction-row">
+                <div class="faction-label lbl-wolf">SÓI</div>
+                <div class="center-marker"><div class="arrow-down"></div><div class="arrow-up"></div></div>
+                <div class="slider-wrapper" id="slider-wolf"></div>
+                <div class="row-control" id="ctrl-wolf"><div style="color:#444">...</div></div>
+            </div>
+
+            <div class="faction-row">
+                <div class="faction-label lbl-neutral">PHE 3</div>
+                <div class="center-marker"><div class="arrow-down"></div><div class="arrow-up"></div></div>
+                <div class="slider-wrapper" id="slider-neutral"></div>
+                <div class="row-control" id="ctrl-neutral"><div style="color:#444">...</div></div>
             </div>
         </div>
 
         <div class="sidebar sidebar-right">
-            <div id="role-preview">
-                <div style="color: #666; font-size: 20px;">[ DI CHUỘT VÀO ROLE ]</div>
-                <img id="preview-img" src="">
-                <div id="preview-name"></div>
-                <div id="preview-desc"></div>
-            </div>
             <div class="panel-header">LOG HỆ THỐNG</div>
             <div id="log-console"></div>
-            
             <div class="chat-controls">
-                <input type="text" id="admin-msg-input" placeholder="Nhắn cho cả làng..." onkeydown="if(event.key==='Enter') sendAdminChat()">
-                <button class="btn-send" onclick="sendAdminChat()">GỬI</button>
+                <input type="text" id="admin-msg-input" placeholder="Nhắn cả làng..." onkeydown="if(event.key==='Enter') sendAdminChat()">
+                <button onclick="sendAdminChat()" style="cursor:pointer">GỬI</button>
             </div>
         </div>
     </div>
 
     <div class="control-bar">
-        <div class="counter-box">
-            CHỌN: <span id="total-roles" class="counter-num">0</span> / <span id="total-players" class="counter-num">0</span>
+        <div class="counter-box" style="font-size:24px; color:#aaa">
+            ĐÃ CHỌN: <span id="total-roles" style="color:#fff; font-weight:bold">0</span> / <span id="total-players" style="color:#fff">0</span>
         </div>
         <div style="display:flex; gap:10px">
-            <button id="btn-end-discuss" class="btn-main btn-skip" onclick="endDiscuss()">KẾT THÚC THẢO LUẬN</button>
-            <button id="btn-start" class="btn-main btn-start" onclick="startGame()">BẮT ĐẦU GAME</button>
+            <button class="btn-skip" onclick="endDiscuss()">STOP TALK</button>
+            <button id="btn-start" class="btn-start" onclick="startGame()">BẮT ĐẦU GAME</button>
         </div>
     </div>
 
     <script>
         const socket = io();
         let myRoomId = null;
-        let GLOBAL_CONFIG = {}; // Lưu config nhận từ server
-        let renderTimeout;
+        let GLOBAL_CONFIG = {};
+        let SELECTED_COUNTS = {}; 
+        let ACTIVE_ROLES = { villager: null, wolf: null, neutral: null };
 
-        // Tự động tạo phòng khi vào trang
         socket.emit('create_room'); 
 
-        // Nhận ID phòng và Cấu hình Role (quan trọng!)
         socket.on('room_created', data => {
             myRoomId = data.room_id;
-            GLOBAL_CONFIG = data.roles_config; // Nhận từ điển config từ app.py
+            GLOBAL_CONFIG = data.roles_config;
             document.getElementById('room-id-display').innerText = myRoomId;
-            renderRoles();
+            renderAllSliders();
+            updateTotalCounter();
         });
 
-        // Vẽ danh sách Roles dựa trên Config server gửi xuống
-        function renderRoles() {
-            const colVil = document.getElementById('col-villager');
-            const colWolf = document.getElementById('col-wolf');
-            const colNeu = document.getElementById('col-neutral');
-
-            // Duyệt qua từng Role ID trong Config
-            for (const [rID, info] of Object.entries(GLOBAL_CONFIG)) {
-                // Xác định cột dựa trên 'team' trong config
-                let container;
-                if (info.team === 'wolf') container = colWolf;
-                else if (info.team === 'neutral') container = colNeu;
-                else container = colVil;
-
-                // ID cho input (dùng chính ID Tiếng Anh)
-                let inputId = 'role-input-' + rID;
-                
-                // Mặc định Dân Làng và Sói thường có sẵn 1 slot
-                let defVal = (rID === "Villager" || rID === "Werewolf") ? 1 : 0;
-
-                let html = `
-                    <div class="role-card" onmouseenter="showPreview('${rID}')">
-                        <img src="/static/assets/${info.img}" class="role-icon">
-                        <div class="role-info">${info.name}</div>
-                        <input type="number" min="0" value="${defVal}" id="${inputId}" class="role-input" onchange="updateCounter()">
-                    </div>
-                `;
-                container.innerHTML += html;
-            }
-            updateCounter();
-        }
-
-        // Hiển thị xem trước ảnh và mô tả
-        function showPreview(rID) {
+        // --- MODAL LOGIC ---
+        function viewCard(rID) {
             const info = GLOBAL_CONFIG[rID];
-            if(info) {
-                document.getElementById('role-preview').querySelector('div').style.display = 'none';
-                const img = document.getElementById('preview-img');
-                img.src = '/static/assets/' + info.img;
-                img.style.display = 'block';
-                document.getElementById('preview-name').innerText = info.name;
-                document.getElementById('preview-desc').innerText = info.desc;
+            if(!info) return;
+            const modal = document.getElementById('card-modal');
+            const img = document.getElementById('modal-img-display');
+            img.src = '/static/assets/' + info.img;
+            modal.style.display = 'flex';
+        }
+        function closeModal() {
+            document.getElementById('card-modal').style.display = 'none';
+        }
+
+        // --- RENDER SLIDERS ---
+        function renderAllSliders() {
+            let groups = { villager: [], wolf: [], neutral: [] };
+            for (const [rID, info] of Object.entries(GLOBAL_CONFIG)) {
+                if(info.team === 'wolf') groups.wolf.push(rID);
+                else if(info.team === 'neutral') groups.neutral.push(rID);
+                else groups.villager.push(rID);
+            }
+            renderSlider('villager', groups.villager, "ctrl-villager");
+            renderSlider('wolf', groups.wolf, "ctrl-wolf");
+            renderSlider('neutral', groups.neutral, "ctrl-neutral");
+        }
+
+        function renderSlider(groupName, roleIDs, ctrlId) {
+            const container = document.getElementById('slider-' + groupName);
+            container.innerHTML = '';
+            
+            roleIDs.forEach(rID => {
+                const info = GLOBAL_CONFIG[rID];
+                const card = document.createElement('div');
+                card.className = 'card';
+                card.id = `card-${rID}`;
+                
+                card.onclick = () => {
+                    card.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                    setActiveRole(groupName, rID, ctrlId);
+                };
+
+                const badge = document.createElement('div');
+                badge.className = 'qty-badge';
+                badge.id = `badge-${rID}`;
+                badge.innerText = SELECTED_COUNTS[rID] || 0;
+                if(SELECTED_COUNTS[rID] > 0) badge.style.display = 'flex';
+
+                const zoomBtn = document.createElement('div');
+                zoomBtn.className = 'zoom-btn';
+                zoomBtn.innerHTML = '🔍';
+                zoomBtn.onclick = (e) => {
+                    e.stopPropagation(); 
+                    viewCard(rID);
+                };
+
+                card.innerHTML = `<img src="/static/assets/${info.img}" class="card-img">`;
+                card.appendChild(badge);
+                card.appendChild(zoomBtn);
+                container.appendChild(card);
+            });
+
+            container.addEventListener('scroll', () => {
+                detectActiveCard(container, roleIDs, groupName, ctrlId);
+            });
+
+            if(roleIDs.length > 0) {
+                setTimeout(() => { setActiveRole(groupName, roleIDs[0], ctrlId); }, 500);
             }
         }
 
-        // Đếm tổng số role đã chọn
-        function updateCounter() {
-            let total = 0;
-            // Duyệt qua tất cả các role trong config
-            for (const rID of Object.keys(GLOBAL_CONFIG)) {
-                let el = document.getElementById('role-input-' + rID);
-                if(el) total += parseInt(el.value) || 0;
+        function detectActiveCard(container, roleIDs, groupName, ctrlId) {
+            const center = container.scrollLeft + (container.offsetWidth / 2);
+            let closest = null;
+            let minDist = Infinity;
+            roleIDs.forEach(rID => {
+                const el = document.getElementById(`card-${rID}`);
+                const elCenter = el.offsetLeft + (el.offsetWidth / 2);
+                const dist = Math.abs(center - elCenter);
+                if(dist < minDist) { minDist = dist; closest = rID; }
+            });
+            if(closest && ACTIVE_ROLES[groupName] !== closest) {
+                setActiveRole(groupName, closest, ctrlId);
             }
+        }
 
-            let pCount = parseInt(document.getElementById('p-count').innerText) || 0;
+        function setActiveRole(groupName, rID, ctrlId) {
+            ACTIVE_ROLES[groupName] = rID;
+            const container = document.getElementById('slider-' + groupName);
+            Array.from(container.children).forEach(c => c.classList.remove('active'));
+            const activeCard = document.getElementById(`card-${rID}`);
+            if(activeCard) activeCard.classList.add('active');
+            renderControlPanel(ctrlId, rID);
+        }
+
+        function renderControlPanel(ctrlId, rID) {
+            const panel = document.getElementById(ctrlId);
+            const info = GLOBAL_CONFIG[rID];
+            const count = SELECTED_COUNTS[rID] || 0;
+            panel.innerHTML = `
+                <div class="ctrl-role-name">${info.name}</div>
+                <div class="ctrl-role-desc">${info.desc}</div>
+                <div class="ctrl-inputs">
+                    <div class="btn-qty" onclick="changeQty('${rID}', -1)">-</div>
+                    <input class="inp-qty" id="inp-${rID}" value="${count}" readonly>
+                    <div class="btn-qty" onclick="changeQty('${rID}', 1)">+</div>
+                </div>
+            `;
+        }
+
+        function changeQty(rID, delta) {
+            let current = SELECTED_COUNTS[rID] || 0;
+            let newVal = current + delta;
+            if(newVal < 0) newVal = 0;
+            SELECTED_COUNTS[rID] = newVal;
+            const inp = document.getElementById(`inp-${rID}`);
+            if(inp) inp.value = newVal;
+            const badge = document.getElementById(`badge-${rID}`);
+            if(badge) {
+                badge.innerText = newVal;
+                badge.style.display = newVal > 0 ? 'flex' : 'none';
+            }
+            updateTotalCounter();
+        }
+
+        function updateTotalCounter() {
+            let total = 0;
+            for(let key in SELECTED_COUNTS) total += SELECTED_COUNTS[key];
+            const pCount = parseInt(document.getElementById('p-count').innerText) || 0;
             const txt = document.getElementById('total-roles');
             txt.innerText = total;
-            
-            // Đổi màu nếu khớp số lượng
             txt.style.color = (total === pCount && total > 0) ? '#4caf50' : '#ff5252';
             document.getElementById('total-players').innerText = pCount;
         }
 
-        // Cập nhật danh sách người chơi (Real-time)
-        socket.on('admin_update', data => {
-            clearTimeout(renderTimeout);
-            renderTimeout = setTimeout(() => {
-                renderPlayerList(data);
-            }, 50);
-        });
-
+        socket.on('admin_update', data => { renderPlayerList(data); });
         function renderPlayerList(data) {
             const list = document.getElementById('player-list');
-            const fragment = document.createDocumentFragment();
             document.getElementById('p-count').innerText = data.players.length;
-            
+            list.innerHTML = '';
             data.players.forEach(p => {
                 const div = document.createElement('div');
                 div.className = 'player-row';
                 let statusClass = p.alive ? 'p-alive' : 'p-dead';
-                let statusIcon = p.alive ? '❤️' : '💀';
-                
                 div.innerHTML = `
-                    <div style="flex:1">
-                        <div style="display:flex; justify-content:space-between">
-                            <span class="${statusClass}" style="font-weight:bold">${p.name}</span>
-                            <span>${statusIcon}</span>
-                        </div>
-                        <div style="font-size:16px; color:#888;">Role: [ ${p.role} ]</div>
+                    <span class="${statusClass}">${p.name}</span>
+                    <div>
+                        ${p.alive ? '❤️' : '💀'} 
+                        ${p.alive ? `<span class="kick-x" onclick="kick('${p.sid}')">🚫</span>` : ''}
                     </div>
-                    ${p.alive ? `<span class="kick-x" onclick="kick('${p.sid}')" title="Kick">🚫</span>` : ''}
                 `;
-                fragment.appendChild(div);
+                list.appendChild(div);
             });
-            list.innerHTML = '';
-            list.appendChild(fragment);
-
-            // Cập nhật trạng thái nút Start
+            updateTotalCounter();
             const btnStart = document.getElementById('btn-start');
             if(data.started) {
                 btnStart.innerText = "GAME ĐANG CHẠY...";
@@ -302,57 +440,36 @@
                 btnStart.disabled = false;
                 btnStart.style.opacity = "1";
             }
-            updateCounter();
         }
-
-        // Log hệ thống
         socket.on('server_log', data => {
             const box = document.getElementById('log-console');
             let time = new Date().toLocaleTimeString('vi-VN', {hour12:false});
             box.innerHTML += `<div><span style="color:#555">[${time}]</span> ${data.msg}</div>`;
             box.scrollTop = box.scrollHeight;
         });
-
-        function copyRoomID() {
-            navigator.clipboard.writeText(myRoomId);
-            alert("Đã copy ID: " + myRoomId);
-        }
-
-        // Gửi lệnh bắt đầu game
-        function startGame() {
-            let selectedRoles = {};
-            
-            // Thu thập số lượng từ các input
-            for (const rID of Object.keys(GLOBAL_CONFIG)) {
-                let el = document.getElementById('role-input-' + rID);
-                if(el) {
-                    let val = parseInt(el.value);
-                    if(val > 0) selectedRoles[rID] = val; // Key là ID tiếng Anh (VD: "Werewolf")
-                }
-            }
-            
-            let total = document.getElementById('total-roles').innerText;
-            let players = document.getElementById('total-players').innerText;
-            
-            if(total != players) {
-                if(!confirm(`⚠️ Cảnh báo: Số role (${total}) không khớp số người (${players}).\nServer sẽ tự động bù Dân Làng hoặc cắt bớt. Tiếp tục?`)) return;
-            }
-            
-            // Gửi về server map: { "Werewolf": 2, "Seer": 1, ... }
-            socket.emit('admin_start_game', {room_id: myRoomId, roles: selectedRoles});
-        }
-
-        function endDiscuss() { socket.emit('admin_end_discussion', {room_id: myRoomId}); }
-        function kick(sid) { if(confirm("Kick người này?")) socket.emit('admin_kick', {room_id: myRoomId, sid: sid}); }
-
+        function copyRoomID() { navigator.clipboard.writeText(myRoomId); alert("Đã copy ID!"); }
         function sendAdminChat() {
             const inp = document.getElementById('admin-msg-input');
             const msg = inp.value.trim();
             if (msg && myRoomId) {
                 socket.emit('admin_chat_msg', {room_id: myRoomId, msg: msg});
-                inp.value = ''; // Xóa ô nhập sau khi gửi
+                inp.value = ''; 
             }
         }
+        function startGame() {
+            let total = parseInt(document.getElementById('total-roles').innerText);
+            let players = parseInt(document.getElementById('total-players').innerText);
+            let finalRoles = {};
+            for(let [key, val] of Object.entries(SELECTED_COUNTS)) {
+                if(val > 0) finalRoles[key] = val;
+            }
+            if(total != players) {
+                if(!confirm(`⚠️ Lệch số lượng: ${total} Role / ${players} Người.\nServer sẽ tự động bù/cắt. Tiếp tục?`)) return;
+            }
+            socket.emit('admin_start_game', {room_id: myRoomId, roles: finalRoles});
+        }
+        function endDiscuss() { socket.emit('admin_end_discussion', {room_id: myRoomId}); }
+        function kick(sid) { if(confirm("Kick người này?")) socket.emit('admin_kick', {room_id: myRoomId, sid: sid}); }
     </script>
 </body>
 </html>
